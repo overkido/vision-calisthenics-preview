@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Vision Calisthenics",
+    "slug": "vision-calistenics",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "visioncalisthenics",
+    "icon": "./assets/icon.png",
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/icon.png"
+    },
+    "platforms": ["ios", "android", "web"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.visioncalisthenics.app",
+      "usesAppleSignIn": true
+    },
+    "android": {
+      "package": "com.visioncalisthenics.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#080A09",
+        "foregroundImage": "./assets/icon.png"
+      }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permitir que o Vision Calisthenics escolha uma foto para seu perfil.",
+          "cameraPermission": "Permitir que o Vision Calisthenics tire uma foto para seu perfil.",
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "extra": {
+      "auth": {
+        "googleClientId": "",
+        "appleServiceId": ""
+      },
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}

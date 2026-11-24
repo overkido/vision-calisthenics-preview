@@ -1,0 +1,49 @@
+name: Publish Vision Calisthenics preview
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get source
+        uses: actions/checkout@v4
+      - name: Prepare GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build web preview
+        run: pnpm export:web
+        env:
+          EXPO_PUBLIC_BASE_URL: ${{ steps.pages.outputs.base_path }}
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - name: Publish website
+        id: deployment
+        uses: actions/deploy-pages@v4
