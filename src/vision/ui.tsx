@@ -8,12 +8,12 @@ import { Button, Card, Field, Label } from '../components/ui';
 export const body = { color: c.muted, fontFamily: typeface.regular, fontSize: 15, lineHeight: 22 };
 export const row = { flexDirection: 'row', flexWrap: 'wrap', gap: 10 } as const;
 export const stack = { gap: 14 } as const;
-export const heading = { color: c.white, fontFamily: typeface.display, fontSize: 32, lineHeight: 36, letterSpacing: -0.9 };
+export const heading = { color: c.white, fontFamily: typeface.bold, fontSize: 32, lineHeight: 36, letterSpacing: -0.9 };
 export const subheading = { color: c.white, fontFamily: typeface.bold, fontSize: 19, lineHeight: 24, letterSpacing: -0.35 };
 export const Caption = ({ children, style }: { children: ReactNode; style?: TextStyle }) => <Text style={[body, style]}>{children}</Text>;
 export const Title = ({ children }: { children: ReactNode }) => <Text accessibilityRole="header" style={heading}>{children}</Text>;
 export const Subtitle = ({ children }: { children: ReactNode }) => <Text accessibilityRole="header" style={subheading}>{children}</Text>;
-export const Tag = ({ children }: { children: ReactNode }) => <Text style={{ color: c.green, fontFamily: typeface.semibold, letterSpacing: 0.45, fontSize: 11 }}>{children}</Text>;
+export const Tag = ({ children }: { children: ReactNode }) => <Text style={{ color: c.green, fontFamily: typeface.bold, letterSpacing: 0.45, fontSize: 11 }}>{children}</Text>;
 
 export function Options<T extends string | number>({ label, options, selected, toggle, display = String }: {
   label: string; options: readonly T[]; selected: readonly T[]; toggle: (option: T) => void; display?: (option: T) => string;

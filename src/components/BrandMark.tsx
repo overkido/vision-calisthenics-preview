@@ -1,3 +1,4 @@
+import { typeface } from '../typography';
 import React from 'react';
 import { Image, View, Text } from 'react-native';
 import { colors } from '../theme';
@@ -11,6 +12,6 @@ export function BrandMark({ size = 56 }: { size?: number }) {
 export function Wordmark() {
   return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
     <BrandMark size={48} />
-    <View><Text style={{ color: colors.white, fontSize: 18, fontWeight: '900', letterSpacing: 2 }}>VISION</Text><Text style={{ color: colors.green, fontSize: 9, fontWeight: '800', letterSpacing: 2.2, marginTop: 2 }}>CALISTHENICS</Text></View>
+    <View><Text style={{ color: colors.white, fontSize: 18, fontFamily: typeface.bold, letterSpacing: 2 }}>VISION</Text><Text style={{ color: colors.green, fontSize: 9, fontFamily: typeface.bold, letterSpacing: 2.2, marginTop: 2 }}>CALISTHENICS</Text></View>
   </View>;
 }

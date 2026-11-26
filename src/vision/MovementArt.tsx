@@ -1,3 +1,4 @@
+import { typeface } from '../typography';
 import { useEffect, useId, useState } from 'react';
 import { Image, View } from 'react-native';
 import { Button, Caption, Options, stack } from './ui';
@@ -115,7 +116,7 @@ export function MovementArt({exercise, compact = false}: {exercise: Exercise; co
     <Svg width="100%" height={compact ? 105 : 195} viewBox="0 0 120 172" accessibilityLabel={exercise.name + ', demonstração esquemática'}>
       <Defs><LinearGradient id={id} x1="0%" x2="100%" y1="0%" y2="100%"><Stop offset="0" stopColor="#E9F5FA" /><Stop offset="1" stopColor="#557582" /></LinearGradient></Defs>
       {figure(compact ? poses[end] : pose, 'url(#' + id + ')', gear, compact ? 1 : phase)}
-      <Text x={60} y={166} textAnchor="middle" fontSize={10} fill="#92F9C1">{hold ? 'SUSTENTAÇÃO' : compact || phase === 1 ? 'FINAL DA IDA' : phase === 0 ? 'INÍCIO' : 'MOVIMENTO'}</Text>
+      <Text x={60} y={166} textAnchor="middle" fontFamily={typeface.bold} fontSize={10} fill="#92F9C1">{hold ? 'SUSTENTAÇÃO' : compact || phase === 1 ? 'FINAL DA IDA' : phase === 0 ? 'INÍCIO' : 'MOVIMENTO'}</Text>
     </Svg>}
     {!compact && (hold ? <Caption>Observe o alinhamento e respire durante a sustentação.</Caption> : <>
       <Options label="FASES DO MOVIMENTO" options={[0,.5,1]} selected={playing ? [] : [phase]} toggle={value => { setPlaying(false); setPhase(value); }} display={value => value === 0 ? 'Inicial' : value === 1 ? 'Final' : 'Intermediária'} />
