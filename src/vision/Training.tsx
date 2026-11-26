@@ -5,9 +5,9 @@ import { MovementArt, WorkoutArt } from './MovementArt';
 import { Linking, Pressable, View } from 'react-native';
 import { Notice } from '../components/ui';
 import { colors as c } from '../theme';
-import { completeSet, dateKey, duration, executionRatings, levels, number, performance, restTime, toggleClock, weekdays, type Active, type ExecutionQuality, type Exercise, type Move, type Profile, type Workout } from './domain';
+import { completeSet, dateKey, duration, executionRatings, levels, performance, restTime, toggleClock, weekdays, type Active, type ExecutionQuality, type Exercise, type Move, type Profile, type Workout } from './domain';
 import { type Store } from './store';
-import { Button, Caption, Card, Field, Meter, NumberField, Options, row, stack, Subtitle, Tag, Title } from './ui';
+import { Button, Caption, Card, Field, Meter, Options, row, stack, Subtitle, Tag, Title } from './ui';
 
 export const clock = (time: number) => [Math.floor(time / 3600), Math.floor(time % 3600 / 60), time % 60].map(piece => String(piece).padStart(2, '0')).join(':');
 export const units = (exercise: Exercise) => exercise.timed ? 's' : 'reps';
@@ -108,11 +108,9 @@ export function Plan({ moves, title, profile, start, resume, library }: {
 
 export function ActiveWorkout({ active, store, profile, back }: { active: Active; store: Store; profile: Profile; back: () => void }) {
   const [now, tick] = useState(Date.now);
-  const [amount, setAmount] = useState('');
   const [quality, setQuality] = useState<ExecutionQuality>();
   const [detail, setDetail] = useState('Execução');
   const [expanded,setExpanded] = useState(false);
-  const [confirmSet,setConfirmSet] = useState(false);
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [error, setError] = useState('');
@@ -131,9 +129,8 @@ export function ActiveWorkout({ active, store, profile, back }: { active: Active
   function register() {
     if (!move) return;
     try {
-      if (!quality) throw new Error('Avalie o controle do movimento antes de registrar.');
-      store.save('active', completeSet(active, number(amount || String(move.target), 0, move.exercise.timed ? 600 : 300, true), Date.now(), quality));
-      setConfirmSet(false); setAmount(''); setQuality(undefined); setDetail('Execução'); setError('');
+      store.save('active', completeSet(active, move.target, Date.now(), quality));
+      setQuality(undefined); setDetail('Execução'); setError('');
     } catch (e) { setError(e instanceof Error ? e.message : 'Falha ao registrar a série.'); }
   }
   const alternatives = move ? store.catalog.filter(e => e.group === move.exercise.group && e.id !== move.exercise.id && e.level <= Math.min(profile.level, move.exercise.level) &&
@@ -159,18 +156,13 @@ export function ActiveWorkout({ active, store, profile, back }: { active: Active
         </View>
         <Subtitle>{move.exercise.name}</Subtitle>
         <Caption>Série {active.set+1}/{move.sets} · {move.target} {units(move.exercise)}{rest>0?' · Descanso '+clock(rest).slice(3):''}</Caption>
-      {confirmSet && !rest && active.clock!==null && <>
-      <NumberField label={`${move.exercise.timed ? 'Segundos' : 'Repetições'} realizadas`} value={amount} set={setAmount} hint={String(move.target)} />
-      <Options label="COMO FOI SUA EXECUÇÃO?" options={executionRatings} selected={quality ? [quality] : []} toggle={setQuality} />
-      <Button title="Confirmar série" onPress={register} />
-      {!!error && <Notice tone="error">{error}</Notice>}
-      </>}
       <View style={row}>
-      {!confirmSet && !rest && active.clock!==null && <Button style={{flexGrow:1,minHeight:44}} title="Finalizar série" onPress={()=>{setError('');setConfirmSet(true);}}/>}
+      {!rest && active.clock!==null && <Button style={{flexGrow:1,minHeight:44}} title="Finalizar série" onPress={register}/>}
       <Button style={{flexGrow:1,minHeight:44}} secondary title={active.clock===null?'Retomar treino':'Pausar treino'} onPress={()=>store.save('active',toggleClock(active,Date.now()))} />
       </View></Card>
       <Button secondary title={expanded?'Ocultar detalhes':'Ver execução e séries'} onPress={()=>setExpanded(!expanded)} style={{minHeight:44}}/>
       {expanded&&<>
+      <Options label="EXECUÇÃO DA SÉRIE ATUAL (OPCIONAL)" options={executionRatings} selected={quality ? [quality] : []} toggle={setQuality} />
       <Tabs options={['Execução','Dicas','Variações','Músculos']} current={detail} select={setDetail} />
       {detail === 'Execução' && <Card style={stack}><MovementArt key={move.exercise.id} exercise={move.exercise} />
         {move.exercise.video && <Button title="Assistir à demonstração" secondary onPress={() => void Linking.openURL(move.exercise.video!).catch(() => setError('Não foi possível abrir o vídeo.'))} />}</Card>}
@@ -180,7 +172,7 @@ export function ActiveWorkout({ active, store, profile, back }: { active: Active
         {active.set > 0 ? <Caption>A substituição está disponível antes de registrar a primeira série do exercício.</Caption> :
           !alternatives.length ? <Caption>Nenhuma variação compatível com seu perfil.</Caption> : alternatives.map(exercise => <Button key={exercise.id} title={'Substituir por ' + exercise.name} secondary onPress={() => {
             const moves = active.moves.map((m,i) => i === active.index ? { ...m, exercise, target: exercise.timed ? 10 : 5 } : m);
-            store.save('active', { ...active, moves }); setAmount(''); setDetail('Execução');
+            store.save('active', { ...active, moves }); setQuality(undefined); setDetail('Execução');
           }} />)}
       </Card>}
       <View style={[row,{ justifyContent: 'space-between', alignItems: 'center' }]}><Subtitle>Séries</Subtitle><Tag>AUTO PROGRESSÃO ATIVA</Tag></View>
@@ -195,7 +187,7 @@ export function ActiveWorkout({ active, store, profile, back }: { active: Active
       <Card style={{ backgroundColor: '#102B21', borderColor: '#1C6948', gap: 6 }}><Subtitle>Progressão automática</Subtitle><Caption>O alvo aumenta após duas sessões completas e controladas na meta. Uma série sem controle pode reduzir o alvo seguinte.</Caption></Card>
       </>}
     </>}
-    {!!error && !confirmSet && <Notice tone="error">{error}</Notice>}
+    {!!error && <Notice tone="error">{error}</Notice>}
     <View style={row}>
       <Button title={!move ? 'Finalizar treino' : confirmFinish ? 'Salvar treino parcial' : 'Finalizar'} secondary={!!move}
         style={{ flexGrow: 1, paddingHorizontal: 10, ...(move ? { borderColor: c.danger } : {}) }}
