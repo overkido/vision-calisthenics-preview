@@ -19,7 +19,7 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET' || url.origin !== root.origin || !url.pathname.startsWith(base)) return;
   const shell = new URL('index.html', root);
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).then(async response => {
+    event.respondWith(fetch(request, { cache: 'no-store' }).then(async response => {
       if (response.ok) return response;
       return await (await caches.open(cacheName)).match(shell) || response;
     }).catch(async () => (await caches.open(cacheName)).match(shell)));

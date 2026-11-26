@@ -60,7 +60,7 @@ export function Library({ catalog, favorite, toggleFavorite, profile, moves }: {
     </View>;
   }
   return <View style={stack}>
-    <View><Title>Biblioteca de</Title><Caption style={{ color: c.green, fontFamily: typeface.bold, fontSize: 32, lineHeight: 37, letterSpacing: -0.9 }}>Exercícios</Caption></View><Caption>Explore {catalog.length} exercícios de calistenia.</Caption>
+    <View><Title>Biblioteca de</Title><Caption style={{ color: c.green, fontFamily: typeface.bold, fontSize: 32, lineHeight: 37, letterSpacing: -0.4 }}>Exercícios</Caption></View><Caption>Explore {catalog.length} exercícios de calistenia.</Caption>
     <Field label="Buscar exercício" value={search} onChangeText={setSearch} placeholder="Flexão, barra fixa, prancha..." />
     <Tabs options={['Todos','Básicos','Força','Isometria']} current={category} select={setCategory} />
     <Subtitle>Grupos musculares</Subtitle>

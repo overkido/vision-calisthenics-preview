@@ -5,10 +5,10 @@ import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 import { colors as c } from '../theme';
 import { Button, Card, Field, Label } from '../components/ui';
 
-export const body = { color: c.muted, fontFamily: typeface.regular, fontSize: 15, lineHeight: 22 };
+export const body = { color: c.muted, fontFamily: typeface.regular, fontSize: 15, lineHeight: 23 };
 export const row = { flexDirection: 'row', flexWrap: 'wrap', gap: 10 } as const;
 export const stack = { gap: 14 } as const;
-export const heading = { color: c.white, fontFamily: typeface.bold, fontSize: 32, lineHeight: 36, letterSpacing: -0.9 };
+export const heading = { color: c.white, fontFamily: typeface.bold, fontSize: 32, lineHeight: 36, letterSpacing: -0.4 };
 export const subheading = { color: c.white, fontFamily: typeface.bold, fontSize: 19, lineHeight: 24, letterSpacing: -0.35 };
 export const Caption = ({ children, style }: { children: ReactNode; style?: TextStyle }) => <Text style={[body, style]}>{children}</Text>;
 export const Title = ({ children }: { children: ReactNode }) => <Text accessibilityRole="header" style={heading}>{children}</Text>;

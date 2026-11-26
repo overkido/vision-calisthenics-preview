@@ -52,8 +52,8 @@ export function Account({ mode, go, local, recovered, issue }: {
   const pill = { borderRadius: 30 };
   if (mode === 'welcome') return <View style={{ gap: 14 }}>
     <EntryArt />
-    <View><Text style={{ color: colors.white, fontFamily: typeface.bold, fontSize: 33, lineHeight: 36, letterSpacing: -1 }}>Evolua com a</Text>
-      <Text style={{ color: colors.green, fontFamily: typeface.bold, fontSize: 39, lineHeight: 43, letterSpacing: -1.3 }}>Calistenia</Text></View>
+    <View><Text style={{ color: colors.white, fontFamily: typeface.bold, fontSize: 33, lineHeight: 36, letterSpacing: -0.4 }}>Evolua com a</Text>
+      <Text style={{ color: colors.green, fontFamily: typeface.bold, fontSize: 39, lineHeight: 43, letterSpacing: -0.6 }}>Calistenia</Text></View>
     <Caption>{['Treinos personalizados, acompanhamento de evolução e planos para alcançar o seu próximo nível.', 'Acompanhe seu desempenho com dados das suas sessões.', 'Registre refeições, água e lembretes de hidratação.', 'Complete sua meta semanal e acompanhe suas conquistas.'][feature]}</Caption>
     <View style={{ flexDirection: 'row', gap: 7 }}>{features.map(([icon, label], i) => <Pressable key={label} accessibilityRole="button" accessibilityState={{ selected: feature === i }} onPress={() => setFeature(i)} style={{ flex: 1, backgroundColor: colors.graphite, borderWidth: 1, borderColor: feature === i ? colors.green : colors.line, borderRadius: 14, alignItems: 'center', justifyContent: 'center', padding: 5, minHeight: 74, gap: 4 }}>
       <Text style={{ color: colors.green, fontSize: 22 }}>{icon}</Text><Caption style={{ fontSize: 10, lineHeight: 14, textAlign: 'center' }}>{label}</Caption></Pressable>)}</View>
