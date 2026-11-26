@@ -14,10 +14,12 @@ self.onmessage = async ({data}) => {
       });
     }
     self.postMessage({status:'Escrevendo com base no seu diário…'});
-    const result = await generator(data.messages,{max_new_tokens:220, do_sample:false, repetition_penalty:1.12, return_full_text:false});
+    const messages = [{role:'system',content:'Classify the last Portuguese nutrition question. Output one letter only. A = weekly report, activity changes or food diary analysis. B = meal idea or timing before or after exercise. C = protein intake or protein goal. D = other, clinical, allergies or treatment.'}, {role:'user',content:data.question}];
+    const result = await generator(messages,{max_new_tokens:4, do_sample:false, repetition_penalty:1.12, return_full_text:false});
     const generated = result[0].generated_text;
     const answer = typeof generated==='string' ? generated : generated.at(-1)?.content;
     if (!answer?.trim()) throw Error();
-    self.postMessage({answer});
+    const intent=answer.trim().toUpperCase().match(/^[^A-Z]*([ABCD])\b/)?.[1] ?? 'D';
+    self.postMessage({intent});
   } catch { self.postMessage({error:'O modelo não conseguiu responder neste navegador. Confira a conexão e o espaço disponível antes de tentar novamente.'}); }
 };

@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { backend } from '../auth/authService';
 import { targets, weekdays, type CoachTurn } from './domain';
-import { coachReport, nextMeal } from './coachReport';
-import { coachPrompt } from './coachPrompt';
+import { coachReport, nextMeal, groundedReply } from './coachReport';
 import type { Store } from './store';
 import { Button, Caption, Field, Subtitle, Tag, stack } from './ui';
 
@@ -38,9 +37,9 @@ export function VisionNutri({store}:{store:Store}) {
       if(local){
         const client=worker.current ?? new Worker((process.env.EXPO_PUBLIC_BASE_URL??'')+'/vision-nutri-worker.js',{type:'module'});
         worker.current=client;
-        client.onmessage=({data})=>{if(run.current!==id)return;if(data.error)fail(data.error);else if(data.answer)finish(data.answer);else setBusy(data.status);};
+        client.onmessage=({data})=>{if(run.current!==id)return;if(data.error)fail(data.error);else if(data.intent)finish(groundedReply(data.intent, report, profile?.days??[], saved?.coachRoutine, saved?.nutrition));else setBusy(data.status);};
         client.onerror=()=>{client.terminate();worker.current=null;fail('O navegador impediu o carregamento da IA. Tente novamente em uma aba do navegador.');};
-        client.postMessage({messages:[{role:'system',content:coachPrompt},{role:'user',content:'Meu diário: '+JSON.stringify(context)},...history]});
+        client.postMessage({question:history.slice(-3).map(t=>t.role+': '+t.content).join('\n')});
       } else {
         if(!backend) throw Error('A conversa no aplicativo nativo precisa da conexão com o servidor. Você também pode usar a versão web.');
         if(!(await backend.auth.getSession()).data.session) throw Error('Entre na sua conta para conversar com o Vision Nutri na nuvem.');

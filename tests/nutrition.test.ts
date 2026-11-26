@@ -35,3 +35,8 @@ test('troca orientação ao registrar treino e considera horário futuro',()=>{
   report.hoje.treinos.push({nome:'A',minutos:30,parcial:false});
   match(nextMeal(report,[4],routine),/treino já está registrado/);
 });
+import { groundedReply } from '../src/vision/coachReport.ts';
+test('a IA local não inventa treino ou consumo quando o diário está vazio',()=>{
+  match(groundedReply('A',coachReport([],[]),[]),/Ainda não tenho refeições/);
+  match(groundedReply('C',coachReport([],[]),[]),/0 g de proteína/);
+});
