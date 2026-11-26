@@ -1,3 +1,4 @@
+import { NutritionAssistant } from './NutritionAssistant';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Notice } from '../components/ui';
@@ -63,11 +64,6 @@ function hydrationEstimate(store: Store) {
 }
 export function Nutrition({ store, reminders }: { store: Store; reminders: () => void }) {
   const [ml, setMl] = useState('250');
-  const [meal, setMeal] = useState('');
-  const [kcal, setKcal] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [fat, setFat] = useState('');
   const [error, setError] = useState('');
   const limits = store.get('targets') ?? targets;
   const estimate = hydrationEstimate(store);
@@ -80,13 +76,12 @@ export function Nutrition({ store, reminders }: { store: Store; reminders: () =>
   }
   const day = dateKey(), water = todayWater(store);
   const drinks = store.list('water').filter(e => e.value.day === day);
-  const meals = store.list('meal').filter(e => e.value.day === day);
-  const totals = meals.reduce((sum, { value: m }) => [sum[0] + m.calories, sum[1] + m.protein, sum[2] + m.carbs, sum[3] + m.fat], [0, 0, 0, 0]);
   function action(fn: () => void) {
     try { fn(); setError(''); } catch (e) { setError((e as Error).message); }
   }
   return <View style={stack}>
     <Title>Nutrição e hidratação</Title>
+    <NutritionAssistant store={store} />
     {!!error && <Notice tone="error">{error}</Notice>}
     <Card style={stack}><Tag>HIDRATAÇÃO · HOJE</Tag><Subtitle>{water}{goal ? ` / ${goal}` : ''} ml</Subtitle>
       {!!goal && <Meter value={water / goal} color="#57C8ED" />}
@@ -105,23 +100,7 @@ export function Nutrition({ store, reminders }: { store: Store; reminders: () =>
       {!!estimate && <Button title="Usar estimativa pelo peso" secondary onPress={() => action(() => saveGoal(estimate.ml))} />}
       <Button title="Salvar meta de água" secondary onPress={() => action(() => saveGoal(number(custom, 250, 6000, true)))} />
     </Card>
-    <Card style={stack}><Tag>ALIMENTAÇÃO · HOJE</Tag><Subtitle>{totals[0]} / {limits.calories} kcal</Subtitle>
-      <Meter value={totals[0] / limits.calories} />
-      <Caption>Proteínas {totals[1].toFixed(1)} g · Carboidratos {totals[2].toFixed(1)} g · Gorduras {totals[3].toFixed(1)} g</Caption>
-      <Field label="Refeição" value={meal} onChangeText={setMeal} maxLength={100} />
-      <NumberField label="Energia (kcal)" value={kcal} set={setKcal} />
-      <NumberField label="Proteínas (g)" value={protein} set={setProtein} />
-      <NumberField label="Carboidratos (g)" value={carbs} set={setCarbs} />
-      <NumberField label="Gorduras (g)" value={fat} set={setFat} />
-      <Button title="Registrar refeição" onPress={() => action(() => {
-        if (!meal.trim()) throw new Error('Informe o nome da refeição.');
-        store.save('meal', { day, name: meal.trim(), calories: number(kcal, 1, 10000, true), protein: number(protein || '0', 0, 1000), carbs: number(carbs || '0', 0, 1000), fat: number(fat || '0', 0, 1000) }, newKey('meal'));
-        setMeal(''); setKcal(''); setProtein(''); setCarbs(''); setFat('');
-      })} />
-      {meals.map(e => <View key={e.key} style={[row, { alignItems: 'center', justifyContent: 'space-between' }]}>
-        <Caption>{e.value.name} · {e.value.calories} kcal</Caption><Button title="Remover" secondary style={{ paddingHorizontal: 10, minHeight: 36 }} onPress={() => store.remove('meal', e.key)} />
-      </View>)}
-    </Card>
+
   </View>;
 }
 export function Achievements({ store, workouts }: { store: Store; workouts: Workout[] }) {
@@ -154,7 +133,7 @@ export function Achievements({ store, workouts }: { store: Store; workouts: Work
       {!!notice && <Notice>{notice}</Notice>}
       <Button title="Salvar metas" onPress={() => {
         try {
-          store.save('targets', { water: water.trim() ? number(water, 250, 6000, true) : undefined, calories: number(kcal, 500, 8000, true), workouts: number(sessions, 1, 7, true) });
+          store.save('targets', { ...(store.get('targets') ?? targets), water: water.trim() ? number(water, 250, 6000, true) : undefined, calories: number(kcal, 500, 8000, true), workouts: number(sessions, 1, 7, true) });
           setNotice('Metas salvas.');
         } catch (e) { setNotice((e as Error).message); }
       }} />

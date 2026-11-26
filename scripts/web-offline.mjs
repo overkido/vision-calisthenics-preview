@@ -25,5 +25,16 @@ const entry = join(root, 'index.html');
 const html = await readFile(entry, 'utf8');
 const base = (process.env.EXPO_PUBLIC_BASE_URL ?? '').replace(/\/$/, '');
 if (base && !/^\/[a-zA-Z0-9/_-]+$/.test(base)) throw new Error('Invalid Expo public base URL');
+const fontFaces = await Promise.all([
+  ['VISIONMontserratRegular', 'Montserrat_400Regular'],
+  ['VISIONMontserratBold', 'Montserrat_700Bold'],
+].map(async ([family, font]) => {
+  const path = (await files()).find(file => file.includes('/' + font + '.') && file.endsWith('.ttf'));
+  if (!path) throw new Error(`Font missing from web export: ${font}`);
+  const data = (await readFile(join(root, path))).toString('base64');
+  const url = JSON.stringify(`${base}/${path}`);
+  return `@font-face{font-family:${family};src:url(data:font/ttf;base64,${data}) format("truetype"),url(${url}) format("truetype");font-display:swap;}`;
+}));
+const fontStyle = `<style>${fontFaces.join('')}body,button,input,textarea{font-family:VISIONMontserratRegular,Arial,sans-serif}</style>`;
 const registration = `<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register(${JSON.stringify(base + '/offline.js')}).catch(console.warn);</script>`;
-await writeFile(entry, html.replace('</body>', registration + '</body>'));
+await writeFile(entry, html.replace('</head>', fontStyle + '</head>').replace('</body>', registration + '</body>'));
