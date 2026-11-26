@@ -52,3 +52,14 @@ test('perguntas frequentes têm resposta imediata com o saldo registrado',()=>{
   match(groundedReply('C',report,[],undefined,goal),/34,5 g/);
   match(groundedReply('E',report,[],undefined,goal),/1350 kcal/);
 });
+import { coachContext, describeProfile } from '../src/vision/coachContext.ts';
+import type { Profile } from '../src/vision/domain.ts';
+test('monta o contexto do usuário atual e atualiza a pesagem sem misturar diários',()=>{
+  const p:Profile={name:'Ana Teste',age:30,height:170,weight:70,goal:'Força',level:1,days:[1],equipment:[],limits:[],notes:'',pushups:3,plank:10};
+  const meals=[{day:'2026-11-26',name:'Arroz e feijão',protein:18,calories:300,carbs:45,fat:4}];
+  const day=new Date(2026,10,26);
+  const a=coachContext(p,undefined,coachReport(meals,[],day),meals,[{day:'2026-11-25',weight:69}]);
+  const b=coachContext({...p,name:'Beto Teste',goal:'Resistência'},undefined,coachReport([],[],day),[],[]);
+  equal(a.hoje.proteinaG,18);equal(a.pratos[0].nome,'Arroz e feijão');match(describeProfile(a),/Ana.*69 kg/);
+  equal(b.pratos.length,0);equal(b.hoje.proteinaG,0);match(describeProfile(b),/Beto.*resistência.*70 kg/);
+});
