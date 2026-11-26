@@ -5,7 +5,7 @@ export const equipment = ['Barra fixa', 'Paralelas', 'Elástico', 'Argolas', 'Ba
 export const limits = ['Punhos', 'Ombros', 'Joelhos', 'Lombar'];
 export type Profile = {
   name: string; age: number; weight: number; height: number; waist?: number;
-  goal: string; level: number; days: number[]; equipment: string[];
+  goal: string; level: number; days: number[]; gender?: string; minutes?: number; favoriteExercises?: string[]; measurements?: { chest?: number; hip?: number; arm?: number; thigh?: number }; equipment: string[];
   limits: string[]; notes: string; pushups: number; plank: number; photo?: string;
 };
 export type Exercise = {
@@ -13,7 +13,7 @@ export type Exercise = {
   avoid: string[]; timed: boolean; steps: string[]; video?: string;
 };
 export type Move = { exercise: Exercise; sets: number; target: number; rest: number };
-export type Workout = { title: string; moves: Move[]; id: string; day: string; seconds: number; sets: { id: string; amount: number; target: number }[] };
+export type Workout = { title: string; moves: Move[]; id: string; day: string; seconds: number; partial?: boolean; sets: { id: string; amount: number; target: number }[] };
 export type Measure = { day: string; weight: number; waist?: number };
 export type Meal = { day: string; name: string; calories: number; protein: number; carbs: number; fat: number };
 export type Targets = { water?: number; calories: number; workouts: number };

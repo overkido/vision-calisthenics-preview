@@ -10,38 +10,71 @@ import { Button, Caption, Card, Field, Meter, NumberField, Options, row, stack, 
 export const clock = (time: number) => [Math.floor(time / 3600), Math.floor(time % 3600 / 60), time % 60].map(piece => String(piece).padStart(2, '0')).join(':');
 export const units = (exercise: Exercise) => exercise.timed ? 's' : 'reps';
 
-export function Library({ catalog }: { catalog: Exercise[] }) {
+export function Library({ catalog, favorite, toggleFavorite }: { catalog: Exercise[]; favorite: string[]; toggleFavorite: (id:string) => void }) {
+  const [sort, setSort] = useState(false);
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState('Todos');
   const [level, setLevel] = useState(-1);
   const [gear, setGear] = useState('Todos');
   const [selected, setSelected] = useState<Exercise>();
+  const [detailTab, setDetailTab] = useState('Instruções');
+  const [category, setCategory] = useState('Todos');
   const [error, setError] = useState('');
   const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const visible = catalog.filter(e => (group === 'Todos' || e.group === group) && (level < 0 || e.level === level) && (gear === 'Todos' || !e.gear) && normalize(e.name + ' ' + e.gear).includes(normalize(search.trim())));
-  if (selected) return <View style={stack}>
-    <Button title="Voltar à biblioteca" secondary onPress={() => { setSelected(undefined); setError(''); }} />
-    <Title>{selected.name}</Title><Tag>{selected.group} · {levels[selected.level]}</Tag>
-    <Card><MovementArt exercise={selected} /><Subtitle>Como executar</Subtitle>
-      {selected.steps.map((step, i) => <Caption key={i} style={{ marginTop: 12 }}>{i + 1}. {step}</Caption>)}
-      <Caption style={{ marginTop: 16 }}>Equipamento: {selected.gear || 'peso corporal'}</Caption>
-    </Card>
-    {selected.video && <Button title="Assistir à demonstração" onPress={() => void Linking.openURL(selected.video!).catch(() => setError('Não foi possível abrir o vídeo.'))} />}
-    {!!error && <Notice tone="error">{error}</Notice>}
-  </View>;
+  const visible = catalog.filter(e => (!onlyFavorites || favorite.includes(e.id)) && (category === 'Todos' || (category === 'Básicos' ? e.level === 0 : category === 'Força' ? !e.timed : e.timed)) && (group === 'Todos' || e.group === group) && (level < 0 || e.level === level) && (gear === 'Todos' || !e.gear) && normalize(e.name + ' ' + e.gear).includes(normalize(search.trim())));
+  if (sort) visible.sort((a,b) => a.name.localeCompare(b.name,'pt-BR'));
+  if (selected) {
+    const alternatives = catalog.filter(e => e.group === selected.group && e.id !== selected.id).slice(0, 4);
+    return <View style={stack}>
+      <View style={[row,{ justifyContent: 'space-between' }]}><Button title="‹ Biblioteca" secondary onPress={() => { setSelected(undefined); setDetailTab('Instruções'); setError(''); }} style={{ paddingHorizontal: 14 }} />
+        <Button title={favorite.includes(selected.id) ? '♥ Favoritado' : '♡ Favoritar'} secondary onPress={() => toggleFavorite(selected.id)} style={{ paddingHorizontal: 12 }} /></View>
+      <Card style={{ backgroundColor: '#101A1A', gap: 10 }}>
+        <MovementArt exercise={selected} />
+        {selected.video && <Button title="▶ Assistir à demonstração" secondary onPress={() => void Linking.openURL(selected.video!).catch(() => setError('Não foi possível abrir o vídeo.'))} />}
+      </Card>
+      <View style={[row,{ justifyContent: 'space-between', alignItems: 'center' }]}><Title>{selected.name}</Title><Tag>{levels[selected.level]}</Tag></View>
+      <Caption>{selected.gear || 'Peso corporal'} · {selected.group}</Caption>
+      <Tabs options={['Instruções','Dicas','Variações']} current={detailTab} select={setDetailTab} />
+      {detailTab === 'Instruções' && <Card style={stack}><Subtitle>Como executar</Subtitle>
+        {selected.steps.map((step,i) => <View key={i} style={{ flexDirection: 'row', gap: 9 }}><Tag>{i+1}</Tag><Caption style={{ flex: 1 }}>{step}</Caption></View>)}
+      </Card>}
+      {detailTab === 'Dicas' && <Card style={stack}><Subtitle>Dicas</Subtitle><Caption>{selected.steps.at(-1)}</Caption>
+        {!!selected.avoid.length && <Caption>Limitações consideradas no plano: {selected.avoid.join(', ')}.</Caption>}</Card>}
+      {detailTab === 'Variações' && <><Subtitle>Exercícios alternativos</Subtitle><View style={row}>{alternatives.map(exercise => <Pressable key={exercise.id} onPress={() => { setSelected(exercise); setDetailTab('Instruções'); }}
+        accessibilityRole="button" style={{ flexBasis: 150, flexGrow: 1 }}><Card><MovementArt exercise={exercise} compact /><Caption>{exercise.name}</Caption><Tag>{levels[exercise.level]}</Tag></Card></Pressable>)}</View></>}
+      {detailTab !== 'Variações' && <Button title="Ver exercícios alternativos" secondary onPress={() => setDetailTab('Variações')} />}
+      {!!error && <Notice tone="error">{error}</Notice>}
+    </View>;
+  }
   return <View style={stack}>
-    <Title>Biblioteca de exercícios</Title><Caption>{visible.length} de {catalog.length} movimentos</Caption>
+    <View><Title>Biblioteca de</Title><Caption style={{ color: c.green, fontFamily: 'Montserrat_700Bold', fontSize: 31, lineHeight: 38 }}>Exercícios</Caption></View><Caption>Explore {catalog.length} exercícios de calistenia.</Caption>
     <Field label="Buscar exercício" value={search} onChangeText={setSearch} placeholder="Flexão, barra fixa, prancha..." />
+    <Tabs options={['Todos','Básicos','Força','Isometria']} current={category} select={setCategory} />
+    <Subtitle>Grupos musculares</Subtitle>
     <Options label="GRUPO MUSCULAR" options={['Todos', ...new Set(catalog.map(e => e.group))]} selected={[group]} toggle={setGroup} />
     <Options label="NÍVEL" options={[-1, 0, 1, 2]} selected={[level]} toggle={setLevel} display={n => n < 0 ? 'Todos' : levels[n]} />
     <Options label="EQUIPAMENTO" options={['Todos', 'Sem equipamento']} selected={[gear]} toggle={setGear} />
-    <View style={row}>{visible.map(e => <Pressable key={e.id} accessibilityRole="button" onPress={() => setSelected(e)} style={{ flexGrow: 1, flexBasis: 225 }}>
-      <Card style={{ minHeight: 157, gap: 5 }}><MovementArt exercise={e} compact /><Tag>{e.group.toUpperCase()}</Tag><Subtitle>{e.name}</Subtitle><Caption>{levels[e.level]} · {e.gear || 'Peso corporal'}</Caption></Card>
+    <View style={[row,{ justifyContent: 'space-between' }]}><Subtitle>Exercícios ({visible.length})</Subtitle>
+      <Pressable accessibilityRole="button" onPress={() => setSort(!sort)}><Tag>{sort ? 'ORDEM A–Z' : 'ORDEM DO CATÁLOGO'}</Tag></Pressable>
+      <Pressable accessibilityRole="button" accessibilityState={{ selected: onlyFavorites }} onPress={() => setOnlyFavorites(!onlyFavorites)}><Tag>{onlyFavorites ? 'EXIBINDO FAVORITOS' : '♡ FAVORITOS'}</Tag></Pressable>
+    </View>
+    <View style={stack}>{visible.map(e => <Pressable key={e.id} accessibilityRole="button" onPress={() => setSelected(e)} style={{ width: '100%' }}>
+      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 11, padding: 10 }}>
+        <View style={{ width: '36%', maxWidth: 220, backgroundColor: '#101A1A', borderRadius: 11 }}><MovementArt exercise={e} compact /></View>
+        <View style={{ flex: 1, gap: 5 }}><Subtitle>{e.name}</Subtitle><Caption>{e.gear || 'Peso corporal'}</Caption><Tag>{e.group} · {levels[e.level]}</Tag></View>
+      </Card>
     </Pressable>)}</View>
     {!visible.length && <Caption>Nenhum exercício corresponde à busca.</Caption>}
   </View>;
 }
 
+function Tabs({options,current,select}: {options:string[];current:string;select:(value:string)=>void}) {
+  return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{options.map(option => <Pressable key={option} accessibilityRole="tab" accessibilityState={{ selected: option === current }} onPress={() => select(option)}
+    style={{ flexGrow: 1, minHeight: 42, paddingHorizontal: 6, justifyContent: 'center', borderRadius: 11, borderWidth: 1, borderColor: option === current ? c.green : c.line, backgroundColor: option === current ? '#143C2C' : c.graphite }}>
+    <Caption style={{ textAlign: 'center', fontSize: 11, color: option === current ? c.green : c.white }}>{option}</Caption>
+  </Pressable>)}</View>;
+}
 export function Plan({ moves, title, profile, start, resume, library }: {
   moves: Move[]; title: string; profile: Profile; start: () => void; resume: boolean; library: () => void;
 }) {
@@ -64,7 +97,8 @@ export function Plan({ moves, title, profile, start, resume, library }: {
 export function ActiveWorkout({ active, store, profile, back }: { active: Active; store: Store; profile: Profile; back: () => void }) {
   const [now, tick] = useState(Date.now);
   const [amount, setAmount] = useState('');
-  const [swap, setSwap] = useState(false);
+  const [detail, setDetail] = useState('Execução');
+  const [confirmFinish, setConfirmFinish] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -75,7 +109,7 @@ export function ActiveWorkout({ active, store, profile, back }: { active: Active
   const rest = restTime(active, now);
   const finish = () => {
     const id = 'workout:' + active.started;
-    const workout: Workout = { id, day: dateKey(), title: active.title, moves: active.moves, sets: active.sets, seconds: duration(active, Date.now()) };
+    const workout: Workout = { id, day: dateKey(), title: active.title, moves: active.moves, sets: active.sets, partial: !!move, seconds: duration(active, Date.now()) };
     store.changes([{ key: id, kind: 'workout', value: workout }, { key: 'active', kind: 'active', value: null }]);
     back();
   };
@@ -83,41 +117,67 @@ export function ActiveWorkout({ active, store, profile, back }: { active: Active
     if (!move) return;
     try {
       store.save('active', completeSet(active, number(amount || String(move.target), 0, move.exercise.timed ? 600 : 300, true), Date.now()));
-      setAmount(''); setSwap(false); setError('');
+      setAmount(''); setDetail('Execução'); setError('');
     } catch (e) { setError(e instanceof Error ? e.message : 'Falha ao registrar a série.'); }
   }
   const alternatives = move ? store.catalog.filter(e => e.group === move.exercise.group && e.id !== move.exercise.id && e.level <= profile.level &&
     (!e.gear || profile.equipment.includes(e.gear)) && !e.avoid.some(limit => profile.limits.includes(limit))) : [];
+  const records = active.sets.slice(active.moves.slice(0,active.index).reduce((sum,m) => sum+m.sets,0));
+  const progress = active.index / active.moves.length;
   return <View style={stack}>
-    <Title>Treino em andamento</Title>
-    <Card style={{ gap: 10, backgroundColor: '#13241F', borderColor: '#246044' }}>
-      <Tag>{active.title.toUpperCase()}</Tag><Title>{clock(duration(active, now))}</Title>
-      <Meter value={active.sets.length / active.moves.reduce((sum, m) => sum + m.sets, 0)} />
-      <Button title={active.clock === null ? 'Retomar cronômetro' : 'Pausar cronômetro'} secondary onPress={() => store.save('active', toggleClock(active, Date.now()))} />
-    </Card>
-    {move ? <Card style={stack}>
-      <Subtitle>{move.exercise.name}</Subtitle><MovementArt exercise={move.exercise} />
-      <Caption>Exercício {active.index + 1} de {active.moves.length} · Série {active.set + 1} de {move.sets}</Caption>
-      {rest > 0 && <Tag>DESCANSO · {rest}s</Tag>}
-      <View style={row}>
-        <Card style={{ flex: 1, minWidth: 84, padding: 10 }}><Tag>META</Tag><Subtitle>{move.target} {units(move.exercise)}</Subtitle></Card>
-        <Card style={{ flex: 1, minWidth: 84, padding: 10 }}><Tag>DESCANSO</Tag><Subtitle>{move.rest}s</Subtitle></Card>
-        <Card style={{ flex: 1, minWidth: 84, padding: 10 }}><Tag>SÉRIE</Tag><Subtitle>{active.set + 1}/{move.sets}</Subtitle></Card>
-      </View>
-      <Card style={{ backgroundColor: '#172820', gap: 4 }}><Tag>DICA DE EXECUÇÃO</Tag><Caption>{move.exercise.steps[1] ?? move.exercise.steps[0]}</Caption></Card>
+    <View style={[row,{ justifyContent: 'space-between' }]}>
+      <Button title="‹ Treinos" secondary onPress={back} style={{ paddingHorizontal: 10, minHeight: 40 }} />
+      <Button title={confirmDiscard ? 'Confirmar descarte' : 'Descartar treino'} secondary onPress={() => {
+        if (confirmDiscard) { store.remove('active'); back(); } else setConfirmDiscard(true);
+      }} style={{ paddingHorizontal: 10, minHeight: 40 }} />
+    </View>
+    <View style={row}>
+      <View style={{ flexGrow: 1, flexBasis: 210 }}><Caption>Treino em andamento</Caption><Title>{active.title}</Title><Caption>Calistenia · {levels[profile.level]} · {clock(duration(active,now))}</Caption></View>
+      <Card style={{ flexGrow: 1, flexBasis: 180, gap: 8 }}><Subtitle>Progresso do treino</Subtitle><Caption>{active.index} de {active.moves.length} exercícios · {Math.round(progress*100)}%</Caption><Meter value={progress} /></Card>
+    </View>
+    {move && <>
+      <Card style={{ gap: 8, backgroundColor: '#101B1B' }}>
+        <MovementArt exercise={move.exercise} /><Tag>EXERCÍCIO {active.index + 1} DE {active.moves.length}</Tag>
+        <Title>{move.exercise.name}</Title><Caption>{move.exercise.gear || 'Peso corporal'} · {levels[move.exercise.level]}</Caption>
+      </Card>
+      <Tabs options={['Execução','Dicas','Variações','Músculos']} current={detail} select={setDetail} />
+      {detail === 'Execução' && <Card style={stack}>{move.exercise.steps.map((step,i) => <Caption key={i}>{i+1}. {step}</Caption>)}
+        {move.exercise.video && <Button title="Assistir à demonstração" secondary onPress={() => void Linking.openURL(move.exercise.video!).catch(() => setError('Não foi possível abrir o vídeo.'))} />}</Card>}
+      {detail === 'Dicas' && <Card><Caption>{move.exercise.steps.at(-1)}</Caption></Card>}
+      {detail === 'Músculos' && <Card><Subtitle>{({Empurrar:'Peito, ombros e tríceps',Puxar:'Costas e bíceps',Pernas:'Pernas e glúteos',Core:'Abdômen e estabilizadores'} as Record<string,string>)[move.exercise.group] ?? move.exercise.group}</Subtitle><Caption>Grupo muscular do movimento</Caption></Card>}
+      {detail === 'Variações' && <Card style={stack}>
+        {active.set > 0 ? <Caption>A substituição está disponível antes de registrar a primeira série do exercício.</Caption> :
+          !alternatives.length ? <Caption>Nenhuma variação compatível com seu perfil.</Caption> : alternatives.map(exercise => <Button key={exercise.id} title={'Substituir por ' + exercise.name} secondary onPress={() => {
+            const moves = active.moves.map((m,i) => i === active.index ? { ...m, exercise, target: exercise.timed ? 10 : 5 } : m);
+            store.save('active', { ...active, moves }); setAmount(''); setDetail('Execução');
+          }} />)}
+      </Card>}
+      <View style={[row,{ justifyContent: 'space-between', alignItems: 'center' }]}><Subtitle>Séries</Subtitle><Tag>AUTO PROGRESSÃO ATIVA</Tag></View>
+      {Array.from({length:move.sets},(_,i) => {
+        const record = records[i], achieved = !!record && record.amount >= record.target;
+        const color = record ? (achieved ? c.green : performance(record.amount / record.target)) : c.muted;
+        return <Card key={i} style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 7, padding: 12 }}>
+          <Caption style={{ color: c.white }}>Série {i+1} · {record?.amount ?? move.target} {units(move.exercise)}</Caption>
+          <Caption style={{ color }}>{record ? (achieved ? '✓ Concluída' : `Atenção · ${record.target-record.amount} abaixo da meta`) : 'Pendente'}</Caption>
+        </Card>;
+      })}
+      {rest > 0 && <Card style={{ backgroundColor: '#142734', borderColor: '#276683', gap: 8 }}><Tag>DESCANSO · {clock(rest).slice(3)}</Tag><Meter value={rest / move.rest} color="#57C8ED" /><Caption>Próxima série: {active.set+1} · {move.target} {units(move.exercise)}. Respire e hidrate-se.</Caption></Card>}
       <NumberField label={`${move.exercise.timed ? 'Segundos' : 'Repetições'} realizadas`} value={amount} set={setAmount} hint={String(move.target)} />
       <Button title={rest ? `Aguarde ${rest}s` : active.clock === null ? 'Treino pausado' : 'Registrar série'} loading={rest > 0 || active.clock === null} onPress={register} />
-      {active.set === 0 && <Button title={swap ? 'Fechar substituições' : 'Substituir exercício'} secondary onPress={() => setSwap(!swap)} />}
-      {swap && (!alternatives.length ? <Caption>Nenhuma alternativa atende às suas preferências.</Caption> : alternatives.map(e => <Button key={e.id} title={e.name} secondary onPress={() => {
-        const moves = active.moves.map((m, i) => i === active.index ? { ...m, exercise: e, target: e.timed ? 10 : 5 } : m);
-        store.save('active', { ...active, moves }); setAmount(''); setSwap(false);
-      }} />))}
-    </Card> : <Button title="Concluir e salvar treino" onPress={finish} />}
+      <Card style={{ backgroundColor: '#102B21', borderColor: '#1C6948', gap: 6 }}><Subtitle>Progressão automática</Subtitle><Caption>O alvo aumenta quando duas sessões comparáveis atingem a meta em todas as séries.</Caption></Card>
+    </>}
     {!!error && <Notice tone="error">{error}</Notice>}
-    <Button title="Voltar aos treinos" secondary onPress={back} />
-    {move && <Button title={confirmDiscard ? 'Confirmar descarte do treino' : 'Descartar treino'} secondary onPress={() => {
-      if (confirmDiscard) { store.remove('active'); back(); } else setConfirmDiscard(true);
-    }} />}
+    <View style={row}>
+      <Button title="Voltar aos treinos" secondary onPress={back} style={{ flexGrow: 1, paddingHorizontal: 10 }} />
+      {!!move && <Button title={active.clock === null ? 'Retomar treino' : 'Pausar treino'} onPress={() => store.save('active', toggleClock(active,Date.now()))} style={{ flexGrow: 1, paddingHorizontal: 10 }} />}
+      <Button title={!move ? 'Finalizar treino' : confirmFinish ? 'Salvar treino parcial' : 'Finalizar'} secondary={!!move}
+        style={{ flexGrow: 1, paddingHorizontal: 10, ...(move ? { borderColor: c.danger } : {}) }}
+        onPress={() => {
+          if (!move || (confirmFinish && active.sets.length)) finish();
+          else if (!active.sets.length) setError('Registre uma série para salvar o treino.');
+          else setConfirmFinish(true);
+        }} />
+    </View>
   </View>;
 }
 
@@ -143,7 +203,7 @@ export function Calendar({ workouts, days }: { workouts: Workout[]; days: number
         {weekdays.map(d => <Caption key={d} style={{ width: '14.2857%', textAlign: 'center' }}>{d}</Caption>)}
         {Array.from({ length: count + offset }, (_, i) => {
           const day = i - offset + 1, key = dateKey(new Date(month.getFullYear(), month.getMonth(), day));
-          const done = workouts.some(w => w.day === key), scheduled = days.includes(i % 7);
+          const done = workouts.some(w => w.day === key && !w.partial), scheduled = days.includes(i % 7);
           const color = done ? c.green : scheduled ? key < dateKey() ? c.danger : '#FFAC58' : c.muted;
           return <View key={i} style={{ width: '14.2857%', padding: 2 }}>
             {day > 0 && <Pressable accessibilityRole="button" accessibilityLabel={key} accessibilityState={{ selected: selected === key }}
@@ -157,7 +217,7 @@ export function Calendar({ workouts, days }: { workouts: Workout[]; days: number
     </Card>
     <Subtitle>{selected.split('-').reverse().join('/')}</Subtitle>
     {!details.length && <Caption>Nenhum treino concluído neste dia.</Caption>}
-    {details.map(workout => <Card key={workout.id}><Subtitle>{workout.title}</Subtitle><Caption>{clock(workout.seconds)} · {workout.sets.length} séries</Caption>
+    {details.map(workout => <Card key={workout.id}><Subtitle>{workout.title}</Subtitle><Caption>{clock(workout.seconds)} · {workout.sets.length} séries{workout.partial ? ' · Parcial' : ''}</Caption>
       {workout.moves.map(m => {
         const series = workout.sets.filter(s => s.id === m.exercise.id);
         const ratio = series.reduce((sum, s) => sum + s.amount / s.target, 0) / m.sets;

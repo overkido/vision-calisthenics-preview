@@ -16,7 +16,7 @@ import { Admin, Settings, clearDeviceReminder, waterReminderKey } from './src/vi
 import { useStore, type Store } from './src/vision/store';
 import { Achievements, Nutrition, Progress, todayWater } from './src/vision/Tracking';
 import { ActiveWorkout, Calendar, Library, Plan } from './src/vision/Training';
-import { Button, Caption, Card, Chart, row, stack, Subtitle, Tag, Title } from './src/vision/ui';
+import { Button, Caption, Card, Chart, Meter, row, stack, Subtitle, Tag, Title } from './src/vision/ui';
 
 Browser.maybeCompleteAuthSession();
 const localModeKey = 'vision:local-mode';
@@ -39,7 +39,7 @@ function Nav({ section, go, wide }: { section: Section; go: (section: Section) =
     ? { width: 218, padding: 20, borderRightWidth: 1, borderColor: c.line, backgroundColor: '#121821', gap: 10 }
     : { flexDirection: 'row', justifyContent: 'space-around', paddingTop: 6, borderTopWidth: 1, borderColor: c.line, backgroundColor: '#151C26' }}>
     {wide && <View style={{ marginBottom: 28 }}><Wordmark /></View>}
-    {[...navigation, ...(wide ? [{ name: 'Nutrição' as const, path: practicePaths.Nutrição }, { name: 'Conquistas' as const, path: practicePaths.Conquistas }] : [])].map(({ name, path }) => {
+    {[...navigation.filter(tab => wide || (section === 'Biblioteca' ? tab.name !== 'Agenda' : tab.name !== 'Biblioteca')), ...((wide || section !== 'Biblioteca') ? [{ name: 'Conquistas' as const, path: practicePaths.Conquistas }] : []), ...(wide ? [{ name: 'Nutrição' as const, path: practicePaths.Nutrição }] : [])].sort((a,b) => Number(a.name === 'Perfil') - Number(b.name === 'Perfil')).map(({ name, path }) => {
       const selected = name === section || (name === 'Treinos' && section === 'Treino ativo');
       return <Pressable key={name} accessibilityRole="tab" accessibilityState={{ selected }} onPress={() => go(name)}
         style={{ flex: wide ? undefined : 1, flexDirection: wide ? 'row' : 'column', gap: wide ? 12 : 3, alignItems: 'center', justifyContent: wide ? 'flex-start' : 'center',
@@ -55,7 +55,8 @@ function Home({ profile, workouts, store, moves, planTitle, start, go, wide }: {
   profile: Profile; workouts: Workout[]; store: Store; moves: Move[]; planTitle: string; start: () => void; go: (section: Section) => void; wide: boolean;
 }) {
   const goal = store.get('targets') ?? targets;
-  const weekly = new Set(workouts.filter(w => w.day >= weekStart()).map(w => w.day)).size;
+  const completed = workouts.filter(w => !w.partial);
+  const weekly = new Set(completed.filter(w => w.day >= weekStart()).map(w => w.day)).size;
   const water = todayWater(store);
   const percentage = Math.round(Math.min(1, weekly / goal.workouts) * 100);
   const ringColor = performance(weekly / goal.workouts);
@@ -64,7 +65,8 @@ function Home({ profile, workouts, store, moves, planTitle, start, go, wide }: {
     const date = new Date();
     date.setDate(date.getDate() + i);
     return date;
-  }).find(date => profile.days.includes(date.getDay()) && !workouts.some(workout => workout.day === dateKey(date)));
+  }).find(date => profile.days.includes(date.getDay()) && !completed.some(workout => workout.day === dateKey(date)));
+  const weekDays = Array.from({ length: 7 }, (_, i) => { const day = new Date(weekStart() + 'T12:00:00'); day.setDate(day.getDate() + i); return day; });
   const elapsed = Math.round(workouts.reduce((sum, w) => sum + w.seconds, 0) / 60);
   const last = store.list('measure').map(e => e.value).sort((a, b) => a.day.localeCompare(b.day)).slice(-14);
   const active = store.get('active');
@@ -72,15 +74,19 @@ function Home({ profile, workouts, store, moves, planTitle, start, go, wide }: {
   return <View style={{ gap: 18 }}>
     <View style={[row, { justifyContent: 'space-between', alignItems: 'center' }]}>
       <View style={{ flexShrink: 1 }}><Tag>{new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', weekday: 'long' }).toUpperCase()}</Tag>
-        <Title>Olá, {profile.name.split(' ')[0]}.</Title><Caption>Bora treinar hoje?</Caption></View>
+        <Title>{new Date().getHours() < 12 ? 'Bom dia' : new Date().getHours() < 18 ? 'Boa tarde' : 'Boa noite'}, {profile.name.split(' ')[0]}!</Title><Caption>Disciplina hoje, evolução amanhã.</Caption></View>
+      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Lembretes e notificações" onPress={() => go('Configurações')} style={{ borderWidth: 1, borderColor: c.line, borderRadius: 23, padding: 10 }}>
+        <Icon color={c.white} path="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5zm5 3a2 2 0 0 0 4 0" />
+      </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Abrir perfil" onPress={() => go('Perfil')}>
         {profile.photo ? <Image source={{ uri: profile.photo }} style={{ width: 48, height: 48, borderRadius: 24 }} /> :
           <View style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: '#164035' }}>
             <Caption style={{ color: c.green, fontSize: 20 }}>{profile.name[0].toUpperCase()}</Caption>
           </View>}
-      </Pressable>
+      </Pressable></View>
     </View>
-    <View style={{ minHeight: 260, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: '#28523F', backgroundColor: '#11251E' }}>
+    <View style={{ minHeight: 260, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: c.green, backgroundColor: '#11251E' }}>
       <View pointerEvents="none" style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: wide ? '56%' : '66%', overflow: 'hidden' }}>
         <Image source={require('./assets/vision-approved.jpg')} resizeMode="cover" accessibilityElementsHidden
           style={{ position: 'absolute', width: '100%', height: wide ? 530 : 290, top: wide ? -50 : -15, opacity: wide ? .9 : .65 }} />
@@ -94,10 +100,12 @@ function Home({ profile, workouts, store, moves, planTitle, start, go, wide }: {
         </Svg>
       </View>
         <View style={{ padding: wide ? 30 : 18, flex: 1, gap: 10, justifyContent: 'center', backgroundColor: '#09181355' }}>
-          <Tag>{active ? 'EM ANDAMENTO' : 'PRÓXIMO TREINO'}</Tag>
+          <Tag>{active ? 'EM ANDAMENTO' : nextWorkout && dateKey(nextWorkout) === today ? 'TREINO DE HOJE' : 'PRÓXIMO TREINO'}</Tag>
           <Title>{active?.title ?? planTitle}</Title>
           <Caption style={{ color: '#E1F2E9' }}>{moves.length ? `${active ? active.moves.length : moves.length} exercícios · cerca de ${estimate} min` : 'Personalize seu plano no perfil.'}</Caption>
-          <Button title={active ? 'Retomar treino' : moves.length ? 'Iniciar treino' : 'Revisar perfil'} onPress={moves.length || active ? start : () => go('Editar perfil')} style={{ alignSelf: 'flex-start', paddingHorizontal: 22, marginTop: 8 }} />
+          <Tag>{profile.goal} · Calistenia · {levels[profile.level]}</Tag>
+          <View style={row}><Button title={active ? 'Retomar treino' : moves.length ? 'Iniciar treino' : 'Revisar perfil'} onPress={moves.length || active ? start : () => go('Editar perfil')} style={{ alignSelf: 'flex-start', paddingHorizontal: 18, borderRadius: 28 }} />
+          <Button title="Ver detalhes" secondary onPress={() => go('Treinos')} style={{ paddingHorizontal: 15, borderRadius: 28 }} /></View>
         </View>
 
     </View>
@@ -116,23 +124,43 @@ function Home({ profile, workouts, store, moves, planTitle, start, go, wide }: {
         </View>
       </Card>
       <Card style={{ flexGrow: 1, flexBasis: 230, gap: 10 }}><Tag>TEMPO DE TREINO</Tag><Title>{elapsed} min</Title>
-        <Caption>{workouts.length} {workouts.length === 1 ? 'sessão concluída' : 'sessões concluídas'}</Caption>
+        <Caption>{completed.length} {completed.length === 1 ? 'sessão concluída' : 'sessões concluídas'}</Caption>
       </Card>
     </View>
-    {nextWorkout && <Pressable accessibilityRole="button" accessibilityLabel="Abrir agenda de treino" onPress={() => go('Agenda')}>
-      <Card style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-        <Icon path={navigation[3].path} />
-        <View><Tag>AGENDA</Tag><Subtitle>{dateKey(nextWorkout) === today ? 'Treino previsto para hoje' : weekdays[nextWorkout.getDay()] + ', ' + nextWorkout.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</Subtitle></View>
+    <View style={row}>
+      <Card style={{ flexGrow: 1, flexBasis: 310, gap: 9 }}>
+        <Pressable accessibilityRole="button" onPress={() => go('Agenda')}><Subtitle>Agenda semanal  ›</Subtitle></Pressable>
+        <Caption>{weekly} de {profile.days.length} dias com treino</Caption>
+        <View style={{ flexDirection: 'row', gap: 4 }}>{weekDays.map(day => {
+          const date = dateKey(day), done = completed.some(w => w.day === date), missed = profile.days.includes(day.getDay()) && date < today && !done;
+          return <View key={date} style={{ flex: 1, paddingVertical: 6, alignItems: 'center', borderRadius: 9, borderWidth: 1, borderColor: date === today ? c.green : c.line, backgroundColor: c.graphite }}>
+            <Caption style={{ fontSize: 9 }}>{weekdays[day.getDay()]}</Caption><Caption style={{ color: done ? c.green : missed ? c.danger : c.muted }}>{done ? '✓' : missed ? '×' : '○'}</Caption>
+          </View>;
+        })}</View>
       </Card>
-    </Pressable>}
+      <Card style={{ flexGrow: 1, flexBasis: 230, gap: 9 }}>
+        <Pressable accessibilityRole="button" onPress={() => go('Conquistas')}><Subtitle>Metas atuais  ›</Subtitle></Pressable>
+        <Caption>{goal.workouts} dias de treino por semana</Caption><Meter value={weekly / goal.workouts} color={ringColor} />
+        <Caption>{water} ml registrados hoje{goal.water ? ' · meta de ' + goal.water + ' ml' : ''}</Caption>
+        {!!goal.water && <Meter value={water / goal.water} color="#57C8ED" />}
+      </Card>
+    </View>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+      {([['Exercícios','Biblioteca',navigation[2].path,c.green],['Planos','Treinos',navigation[1].path,'#BA8BFA'],['Hidratação','Nutrição',practicePaths.Nutrição,'#57C8ED'],['Alimentação','Nutrição','M4 3v7m3-7v7m3-7v7m-6 0q3 4 6 0m-3 3v8m12-18v18m0-18q-6 6-4 10h4','#FFB95F']] as const)
+      .map(([label,to,path,color]) => <Pressable key={label} accessibilityRole="button" onPress={() => go(to)} style={{ flexGrow: 1, flexBasis: 74 }}>
+        <Card style={{ alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 3 }}><Icon path={path} color={color} /><Caption style={{ fontSize: 10 }}>{label}</Caption></Card>
+      </Pressable>)}
+    </View>
+    <Pressable accessibilityRole="button" onPress={() => go('Conquistas')}>
+      <Card style={{ backgroundColor: '#211A35', borderColor: '#604489', gap: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}><Icon path={practicePaths.Conquistas} color="#BA8BFA" /><Subtitle>Desafio da semana</Subtitle></View>
+        <Caption>Complete {goal.workouts} dias de treino · {weekly}/{goal.workouts}</Caption><Meter value={weekly / goal.workouts} />
+      </Card>
+    </Pressable>
     <Card style={stack}><View style={[row, { justifyContent: 'space-between', alignItems: 'center' }]}><Subtitle>Seu progresso</Subtitle>
       <Pressable accessibilityRole="button" onPress={() => go('Evolução')}><Tag>VER EVOLUÇÃO →</Tag></Pressable></View>
       <Chart values={last.map(m => m.weight)} label={last.length ? 'Peso em kg · último registro: ' + last.at(-1)?.weight : 'Peso em kg'} />
     </Card>
-    <View style={row}>
-      <Pressable accessibilityRole="button" onPress={() => go('Nutrição')} style={{ flex: 1 }}><Card style={{ gap: 6 }}><Icon path={practicePaths.Nutrição} color="#57C8ED" /><Subtitle>Hidratação</Subtitle><Caption>{water} ml hoje</Caption></Card></Pressable>
-      <Pressable accessibilityRole="button" onPress={() => go('Conquistas')} style={{ flex: 1 }}><Card style={{ gap: 6 }}><Icon path={practicePaths.Conquistas} color="#FAD05B" /><Subtitle>Conquistas</Subtitle><Caption>Acompanhar metas</Caption></Card></Pressable>
-    </View>
   </View>;
 }
 
@@ -264,7 +292,10 @@ function AppContent() {
       case 'Início': content = <Home {...{ profile, workouts, store, moves, planTitle, start, wide }} go={enter} />; break;
       case 'Treino ativo': content = active && <ActiveWorkout active={active} store={store} profile={profile} back={() => go('Treinos')} />; break;
       case 'Treinos': content = <Plan moves={moves} title={planTitle} profile={profile} start={start} resume={!!active} library={() => enter('Biblioteca')} />; break;
-      case 'Biblioteca': content = <Library catalog={store.catalog} />; break;
+      case 'Biblioteca': content = <Library catalog={store.catalog} favorite={profile.favoriteExercises ?? []} toggleFavorite={id => {
+        const favorites = profile.favoriteExercises ?? [];
+        store.save('profile', { ...profile, favoriteExercises: favorites.includes(id) ? favorites.filter(x => x !== id) : [...favorites,id] });
+      }} />; break;
       case 'Agenda': content = <Calendar workouts={workouts} days={profile.days} />; break;
       case 'Evolução': content = <Progress store={store} workouts={workouts} profile={profile} />; break;
       case 'Nutrição': content = <Nutrition store={store} reminders={() => enter('Configurações')} />; break;
@@ -294,7 +325,7 @@ function AppContent() {
       {wide && app && <Nav section={section} go={enter} wide />}
       <ScrollView key={section} keyboardShouldPersistTaps="handled" style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
         <View style={{ width: '100%', maxWidth: app ? 1100 : 565, alignSelf: 'center', paddingHorizontal: wide ? 34 : 17, paddingVertical: wide ? 34 : 18, gap: 17 }}>
-          {(!wide || !app) && <Wordmark />}
+          {app && !wide && <Wordmark />}
           {reminderDue && <Card style={stack}><Subtitle>Hora do treino</Subtitle><Button title="Dispensar aviso" secondary onPress={() => setReminderDue(false)} /></Card>}
           {app && waterReminder && waterDue && <Card style={stack}><Subtitle>Hora de beber água</Subtitle>
             <Button title="Abrir hidratação" onPress={() => { setWaterDue(false); go('Nutrição'); }} />

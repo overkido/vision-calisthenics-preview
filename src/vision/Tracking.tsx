@@ -131,11 +131,12 @@ export function Achievements({ store, workouts }: { store: Store; workouts: Work
   const [kcal, setKcal] = useState(String(current.calories));
   const [sessions, setSessions] = useState(String(current.workouts));
   const [notice, setNotice] = useState('');
-  const weekly = new Set(workouts.filter(w => w.day >= weekStart()).map(w => w.day)).size;
+  const completed = workouts.filter(workout => !workout.partial);
+  const weekly = new Set(completed.filter(w => w.day >= weekStart()).map(w => w.day)).size;
   const badges = [
-    { title: 'Primeiro treino', value: workouts.length, target: 1, unit: 'treino' },
+    { title: 'Primeiro treino', value: completed.length, target: 1, unit: 'treino' },
     { title: 'Meta da semana', value: weekly, target: current.workouts, unit: 'dias de treino' },
-    { title: 'Dez treinos', value: workouts.length, target: 10, unit: 'treinos' },
+    { title: 'Dez treinos', value: completed.length, target: 10, unit: 'treinos' },
     ...(hydrationGoal ? [{ title: 'Hidratação de hoje', value: todayWater(store), target: hydrationGoal, unit: 'ml' }] : []),
   ];
   return <View style={stack}>
