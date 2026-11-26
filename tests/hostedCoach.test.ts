@@ -11,3 +11,12 @@ test('envia pergunta, resposta anterior e confirmação ao provedor na ordem da 
   equal(await hostedAnswer(client,'Instruções',{objetivo:'Hipertrofia'},[{role:'user',content:'Pode me indicar as refeições?'},{role:'assistant',content:'Quer opções para o jantar?'},{role:'user',content:'Quero'}]),'Resposta recebida do provedor.');
   client.ai.chat=async()=>({});await rejects(hostedAnswer(client,'',{},[]),/não retornou/);
 });
+import {providerError} from '../src/vision/coachModel.ts';
+test('identifica falhas estruturadas do login e da franquia sem confundir as causas',async()=>{
+  match(providerError({error:{code:'insufficient_funds'}},'chat'),/franquia/);
+  match(providerError({code:'popup_blocked'},'login'),/Safari/);
+  match(providerError({status:401},'chat'),/sessão/);
+  match(providerError({error:{code:'service_unavailable'}},'chat'),/service_unavailable/);
+  const client:HostedCoach={auth:{isSignedIn:()=>false,signIn:async()=>{throw {code:'popup_blocked'};}},ai:{chat:async()=>{throw Error('unexpected');}}};
+  await rejects(hostedAnswer(client,'',{},[]),/janela de login/);
+});

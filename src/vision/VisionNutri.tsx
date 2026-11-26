@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
-import { hostedAnswer, loadHostedCoach, type HostedCoach } from './coachModel';
+import { connectCoach, hostedAnswer, loadHostedCoach, type HostedCoach } from './coachModel';
 import { coachContext } from './coachContext';
 import { coachPrompt } from './coachPrompt';
 import { backend } from '../auth/authService';
@@ -37,6 +37,13 @@ export function VisionNutri({store}:{store:Store}) {
     loadHostedCoach().then(value=>{if(live)setClient(value);},e=>{if(live)setError(e.message);});
     return ()=>{live=false;};
   },[local,retry]);
+  async function connect(){
+    if(!client || busy) return;
+    const id=++run.current;
+    setError('');setBusy('Abrindo login do Puter…');
+    try{await connectCoach(client);}catch(e){if(run.current===id)setError((e as Error).message);}
+    finally{if(run.current===id)setBusy('');}
+  }
   function cancel() { run.current++; setBusy('');setPending(''); }
   async function ask(input:string) {
     const text=input.trim();
@@ -45,7 +52,7 @@ export function VisionNutri({store}:{store:Store}) {
     const id=++run.current;
     const context=coachContext(profile,saved,report,meals,store.list('measure').map(e=>e.value));
     const history:CoachTurn[]=[...turns.slice(-6),{role:'user',content:text}];
-    setPending(text);setBusy('Consultando o Vision Nutri…');setError('');
+    setQuestion(text);setPending(text);setBusy('Consultando o Vision Nutri…');setError('');
     const finish=(answer:string)=>{if(run.current!==id)return;setTurns([...history,{role:'assistant',content:answer.slice(0,2500)}]);setBusy('');setPending('');setQuestion('');};
     const fail=(message:string)=>{if(run.current===id){setError(message);setBusy('');setPending('');}};
     try {
@@ -65,6 +72,7 @@ export function VisionNutri({store}:{store:Store}) {
   return <View style={stack}>
     <Subtitle>Converse com o Vision Nutri</Subtitle>
     <Caption>{local?'Ao enviar, você autoriza compartilhar sua pergunta, conversa recente, primeiro nome, idade, medidas, objetivos, rotina, refeições e treinos com a IA via Puter. No primeiro uso, entre na sua conta Puter. O uso consome sua franquia.':'Ao enviar, você compartilha a pergunta, seu primeiro nome, idade, medidas, objetivos, rotina, refeições e treinos com a Groq para gerar uma resposta.'}</Caption>
+    {local && client && (!client.auth.isSignedIn() || !!error) && <Button secondary title="Conectar conta" loading={!!busy} onPress={()=>void connect()}/>}
     {turns.map((t,i)=><View key={i}><Tag>{t.role==='assistant'?'VISION NUTRI':'VOCÊ'}</Tag><Caption>{t.content}</Caption></View>)}
     {!!pending&&<View accessibilityLiveRegion="polite"><Tag>VOCÊ</Tag><Caption>{pending}</Caption></View>}
     <Field returnKeyType="send" onSubmitEditing={()=>void ask(question)} label="Sua pergunta" placeholder="O que posso comer antes do treino de hoje?" maxLength={450} value={question} onChangeText={v=>{setQuestion(v);setError('');}}/>

@@ -59,6 +59,6 @@ Tokens nativos são persistidos com SecureStore. No navegador, a sessão usa o a
 
 Em Alimentação, a assistência combina duas janelas de sete dias, refeições registradas, minutos de atividade, rotina e objetivo. As médias usam apenas dias com registros. A sugestão de horário é flexível e as metas continuam editáveis pelo usuário.
 
-Na prévia web sem backend, o chat usa GPT-4o mini via Puter.js. O usuário conecta sua conta Puter e autoriza o envio do contexto do diário ao enviar uma pergunta. A franquia pertence à conta do usuário. Falhas de autenticação, conexão ou geração aparecem como erro. O relatório do diário segue acessível offline.
+Na prévia web sem backend, o chat usa o modelo padrão do serviço via Puter.js. O usuário conecta sua conta Puter e autoriza o envio do contexto do diário ao enviar uma pergunta. A franquia pertence à conta do usuário. Falhas de autenticação, conexão ou geração aparecem como erro. O relatório do diário segue acessível offline.
 
 Para usar Groq com contas autenticadas no web e no nativo, configure o Supabase da aplicação, defina o segredo GROQ_API_KEY no servidor e publique a função vision-nutri com verificação de autenticação. GROQ_MODEL substitui o modelo padrão. A função confirma a sessão antes de chamar a Groq. As credenciais do provedor ficam fora do bundle Expo. A consulta envia um recorte dos registros e as últimas mensagens quando o usuário pede uma resposta.
