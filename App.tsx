@@ -5,7 +5,7 @@ import * as Linking from 'expo-linking';
 import * as Browser from 'expo-web-browser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
-import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { backend, finishAuth } from './src/auth/authService';
 import { Wordmark } from './src/components/BrandMark';
 import { Notice } from './src/components/ui';
@@ -16,7 +16,7 @@ import { Admin, Settings, clearDeviceReminder } from './src/vision/Settings';
 import { useStore, type Store } from './src/vision/store';
 import { Achievements, Nutrition, Progress, todayWater } from './src/vision/Tracking';
 import { ActiveWorkout, Calendar, Library, Plan } from './src/vision/Training';
-import { Button, Caption, Card, Chart, Meter, row, stack, Subtitle, Tag, Title } from './src/vision/ui';
+import { Button, Caption, Card, Chart, row, stack, Subtitle, Tag, Title } from './src/vision/ui';
 
 Browser.maybeCompleteAuthSession();
 const localModeKey = 'vision:local-mode';
@@ -45,7 +45,7 @@ function Nav({ section, go, wide }: { section: Section; go: (section: Section) =
         style={{ flex: wide ? undefined : 1, flexDirection: wide ? 'row' : 'column', gap: wide ? 12 : 3, alignItems: 'center', justifyContent: wide ? 'flex-start' : 'center',
           paddingHorizontal: wide ? 12 : 1, paddingVertical: 9, minHeight: 49, borderRadius: 10, backgroundColor: wide && selected ? '#13352A' : 'transparent' }}>
         <Icon path={path} color={selected ? c.green : c.muted} />
-        <Caption style={{ color: selected ? c.green : c.muted, fontFamily: 'Inter_600SemiBold', fontSize: wide ? 14 : 9, lineHeight: 15 }}>{name}</Caption>
+        <Caption style={{ color: selected ? c.green : c.muted, fontFamily: 'Montserrat_600SemiBold', fontSize: wide ? 14 : 9, lineHeight: 15 }}>{name}</Caption>
       </Pressable>;
     })}
   </View>;
@@ -57,6 +57,14 @@ function Home({ profile, workouts, store, moves, planTitle, start, go, wide }: {
   const goal = store.get('targets') ?? targets;
   const weekly = new Set(workouts.filter(w => w.day >= weekStart()).map(w => w.day)).size;
   const water = todayWater(store);
+  const percentage = Math.round(Math.min(1, weekly / goal.workouts) * 100);
+  const ringColor = performance(weekly / goal.workouts);
+  const today = dateKey();
+  const nextWorkout = Array.from({ length: 8 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() + i);
+    return date;
+  }).find(date => profile.days.includes(date.getDay()) && !workouts.some(workout => workout.day === dateKey(date)));
   const elapsed = Math.round(workouts.reduce((sum, w) => sum + w.seconds, 0) / 60);
   const last = store.list('measure').map(e => e.value).sort((a, b) => a.day.localeCompare(b.day)).slice(-14);
   const active = store.get('active');
@@ -86,21 +94,37 @@ function Home({ profile, workouts, store, moves, planTitle, start, go, wide }: {
         </Svg>
       </View>
         <View style={{ padding: wide ? 30 : 18, flex: 1, gap: 10, justifyContent: 'center', backgroundColor: '#09181355' }}>
-          <Tag>{active ? 'EM ANDAMENTO' : 'SEU PLANO DE TREINO'}</Tag>
+          <Tag>{active ? 'EM ANDAMENTO' : 'PRÓXIMO TREINO'}</Tag>
           <Title>{active?.title ?? planTitle}</Title>
-          <Caption style={{ color: '#E1F2E9' }}>{moves.length ? `${moves.length} exercícios · cerca de ${estimate} min` : 'Personalize seu plano no perfil.'}</Caption>
+          <Caption style={{ color: '#E1F2E9' }}>{moves.length ? `${active ? active.moves.length : moves.length} exercícios · cerca de ${estimate} min` : 'Personalize seu plano no perfil.'}</Caption>
           <Button title={active ? 'Retomar treino' : moves.length ? 'Iniciar treino' : 'Revisar perfil'} onPress={moves.length || active ? start : () => go('Editar perfil')} style={{ alignSelf: 'flex-start', paddingHorizontal: 22, marginTop: 8 }} />
         </View>
 
     </View>
     <View style={row}>
-      <Card style={{ flexGrow: 1, flexBasis: 230, gap: 10 }}><Tag>META SEMANAL</Tag><Title>{weekly} / {goal.workouts}</Title>
-        <Meter value={weekly / goal.workouts} color={performance(weekly / goal.workouts)} /><Caption>Dias de treino nesta semana</Caption>
+      <Card style={{ flexGrow: 1, flexBasis: 230, gap: 10 }}><Tag>META SEMANAL</Tag>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
+          <View style={{ width: 72, height: 72, alignItems: 'center', justifyContent: 'center' }}>
+            <Svg width={72} height={72} viewBox="0 0 72 72" style={{ position: 'absolute' }}>
+              <Circle cx={36} cy={36} r={30} stroke={c.line} strokeWidth={5} fill="none" />
+              {percentage > 0 && <Circle cx={36} cy={36} r={30} stroke={ringColor} strokeWidth={5} strokeLinecap="round" fill="none"
+                strokeDasharray={[188.5, 188.5]} strokeDashoffset={188.5 * (1 - percentage / 100)} rotation={-90} origin="36, 36" />}
+            </Svg>
+            <Subtitle>{percentage}%</Subtitle>
+          </View>
+          <View style={{ flex: 1 }}><Subtitle>{weekly} / {goal.workouts}</Subtitle><Caption>Dias de treino nesta semana</Caption></View>
+        </View>
       </Card>
       <Card style={{ flexGrow: 1, flexBasis: 230, gap: 10 }}><Tag>TEMPO DE TREINO</Tag><Title>{elapsed} min</Title>
         <Caption>{workouts.length} {workouts.length === 1 ? 'sessão concluída' : 'sessões concluídas'}</Caption>
       </Card>
     </View>
+    {nextWorkout && <Pressable accessibilityRole="button" accessibilityLabel="Abrir agenda de treino" onPress={() => go('Agenda')}>
+      <Card style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+        <Icon path={navigation[3].path} />
+        <View><Tag>AGENDA</Tag><Subtitle>{dateKey(nextWorkout) === today ? 'Treino previsto para hoje' : weekdays[nextWorkout.getDay()] + ', ' + nextWorkout.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</Subtitle></View>
+      </Card>
+    </Pressable>}
     <Card style={stack}><View style={[row, { justifyContent: 'space-between', alignItems: 'center' }]}><Subtitle>Seu progresso</Subtitle>
       <Pressable accessibilityRole="button" onPress={() => go('Evolução')}><Tag>VER EVOLUÇÃO →</Tag></Pressable></View>
       <Chart values={last.map(m => m.weight)} label={last.length ? 'Peso em kg · último registro: ' + last.at(-1)?.weight : 'Peso em kg'} />

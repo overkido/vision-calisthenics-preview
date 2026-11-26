@@ -10,18 +10,29 @@ export function Progress({ store, workouts, profile }: { store: Store; workouts:
   const [waist, setWaist] = useState('');
   const [period, setPeriod] = useState(30);
   const [metric, setMetric] = useState('Peso');
+  const [exerciseId, setExerciseId] = useState('');
   const [result, setResult] = useState('');
   const from = new Date(); from.setDate(from.getDate() - period + 1);
   const history = store.list('measure').map(e => e.value).filter(e => e.day >= dateKey(from)).sort((a, b) => a.day.localeCompare(b.day));
   const sessions = workouts.filter(w => w.day >= dateKey(from)).slice().reverse();
   const values = metric === 'Séries' ? sessions.map(w => w.sets.length) : metric === 'Cintura' ? history.flatMap(m => m.waist === undefined ? [] : [m.waist]) : history.map(m => m.weight);
   const latest = history.at(-1);
+  const trackedMoves = [...new Map(sessions.flatMap(workout => workout.moves.map(move => [move.exercise.id, move.exercise] as const))).values()];
+  const tracked = trackedMoves.find(exercise => exercise.id === exerciseId) ?? trackedMoves[0];
+  const bestSets = tracked ? sessions.flatMap(workout => {
+    const sets = workout.sets.filter(set => set.id === tracked.id);
+    return sets.length ? [Math.max(...sets.map(set => set.amount))] : [];
+  }) : [];
   return <View style={stack}>
     <Title>Evolução</Title>
     <Card style={stack}>
       <Options label="PERÍODO" options={[7, 30, 90, 365]} selected={[period]} toggle={setPeriod} display={days => days + 'D'} />
-      <Options label="INDICADOR" options={['Peso', 'Cintura', 'Séries']} selected={[metric]} toggle={setMetric} />
-      <Chart values={values} label={values.length ? `${metric}: ${values[0]} → ${values.at(-1)} · ${values.length} registros` : metric} />
+      <Options label="INDICADOR" options={['Peso', 'Cintura', 'Séries', 'Força']} selected={[metric]} toggle={setMetric} />
+      {metric === 'Força' ? <>
+        {!!tracked && <Options label="EXERCÍCIO" options={trackedMoves.map(exercise => exercise.id)} selected={[tracked.id]}
+          toggle={setExerciseId} display={id => trackedMoves.find(exercise => exercise.id === id)?.name ?? id} />}
+        <Chart values={bestSets} label={tracked && bestSets.length ? `Melhor série por sessão · recorde: ${Math.max(...bestSets)} ${tracked.timed ? 's' : 'reps'}` : 'Melhor série por sessão'} />
+      </> : <Chart values={values} label={values.length ? `${metric}: ${values[0]} → ${values.at(-1)} · ${values.length} registros` : metric} />}
     </Card>
     <Card><Tag>MEDIDAS CORPORAIS</Tag><Subtitle>{latest?.weight ?? profile.weight} kg</Subtitle>
       <Caption>Cintura: {(latest?.waist ?? profile.waist) ? `${latest?.waist ?? profile.waist} cm` : 'Sem registro'}</Caption>

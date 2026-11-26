@@ -26,3 +26,30 @@ export const builtIn: Exercise[] = [
   { id: 'hollow', name: 'Hollow hold', group: 'Core', level: 1, gear: '', avoid: ['Lombar'], timed: true,
     steps: ['Deite de costas e contraia o abdômen.', 'Eleve as pernas e os ombros mantendo a lombar apoiada.', 'Sustente a posição respirando normalmente.'] },
 ];
+
+type Movement = [id: string, name: string, group: string, level: number, gear: string, avoid: string[], timed: boolean, steps: string[], video?: string];
+const movementLibrary: Movement[] = [
+  ['incline-pushup', 'Flexão inclinada', 'Empurrar', 0, 'Banco firme', ['Punhos','Ombros','Lombar'], false, ['Apoie as mãos em uma superfície firme e elevada.', 'Aproxime o peito do apoio mantendo o corpo alinhado.', 'Empurre até estender os braços.']],
+  ['knee-pushup', 'Flexão com joelhos apoiados', 'Empurrar', 0, '', ['Punhos','Ombros'], false, ['Apoie mãos e joelhos com o tronco alinhado.', 'Desça o peito em direção ao chão.', 'Estenda os braços sem deixar o quadril recuar.'], 'https://www.youtube.com/watch?v=WcHtt6zT3Go'],
+  ['diamond-pushup', 'Flexão diamante', 'Empurrar', 2, '', ['Punhos','Ombros','Lombar'], false, ['Coloque as mãos próximas, abaixo do peito.', 'Dobre os cotovelos mantendo o tronco firme.', 'Empurre o chão para voltar com controle.']],
+  ['pike-pushup', 'Flexão pike', 'Empurrar', 1, '', ['Punhos','Ombros'], false, ['Eleve o quadril formando um V invertido.', 'Dobre os braços e leve a cabeça em direção ao chão.', 'Empurre com controle sem deslocar os pés.']],
+  ['scapular-pushup', 'Flexão escapular', 'Empurrar', 0, '', ['Punhos','Ombros'], false, ['Apoie mãos e pés em posição de prancha alta.', 'Mantenha os cotovelos estendidos e aproxime as escápulas.', 'Empurre o chão para afastar as escápulas.']],
+  ['chinup', 'Barra fixa supinada', 'Puxar', 2, 'Barra fixa', ['Punhos','Ombros'], false, ['Segure a barra com as palmas voltadas para você.', 'Puxe com os cotovelos voltados para baixo, sem impulso.', 'Retorne devagar à posição inicial.']],
+  ['scapular-pullup', 'Elevação escapular na barra', 'Puxar', 1, 'Barra fixa', ['Punhos','Ombros'], false, ['Segure a barra com os braços estendidos.', 'Afaste os ombros das orelhas sem dobrar os cotovelos.', 'Retorne com controle.']],
+  ['dead-hang', 'Suspensão na barra', 'Puxar', 0, 'Barra fixa', ['Punhos','Ombros'], true, ['Segure a barra com as duas mãos.', 'Tire os pés do chão sem embalo.', 'Sustente a posição e volte ao chão com controle.']],
+  ['ring-row', 'Remada nas argolas', 'Puxar', 1, 'Argolas', ['Punhos','Ombros','Lombar'], false, ['No início, mantenha o corpo mais próximo da vertical.', 'Puxe as argolas em direção às laterais do peito.', 'Retorne sem deixar o quadril cair.']],
+  ['negative-pullup', 'Barra fixa negativa', 'Puxar', 1, 'Barra fixa', ['Punhos','Ombros'], false, ['Comece no topo com auxílio de uma plataforma firme.', 'Desça lentamente até os braços ficarem estendidos.', 'Reapoie os pés para voltar ao topo.']],
+  ['sit-to-stand', 'Sentar e levantar', 'Pernas', 0, 'Banco firme', ['Joelhos','Lombar'], false, ['Sente em um banco firme com os pés no chão.', 'Incline levemente o tronco e levante-se.', 'Sente devagar mantendo os pés apoiados.']],
+  ['split-squat', 'Agachamento dividido', 'Pernas', 1, '', ['Joelhos','Lombar'], false, ['Posicione um pé à frente do outro.', 'Flexione os joelhos mantendo os pés no lugar.', 'Faça a série dos dois lados.']],
+  ['pistol-box', 'Pistol squat no banco', 'Pernas', 2, 'Banco firme', ['Joelhos','Lombar'], false, ['Fique de costas para um banco estável.', 'Eleve um pé e desça até tocar o banco.', 'Levante com a perna de apoio e alterne os lados.']],
+  ['calf-raise', 'Elevação de panturrilha', 'Pernas', 0, '', [], false, ['Mantenha os pés paralelos e use apoio para equilíbrio se precisar.', 'Eleve os calcanhares sem inclinar o corpo.', 'Desça até apoiar os pés inteiros.']],
+  ['wall-sit', 'Isometria na parede', 'Pernas', 0, '', ['Joelhos','Lombar'], true, ['Apoie as costas na parede.', 'Deslize até uma altura confortável mantendo os pés no chão.', 'Sustente a posição e depois volte a ficar em pé.']],
+  ['side-plank', 'Prancha lateral', 'Core', 1, '', ['Ombros','Lombar'], true, ['Apoie o antebraço com o cotovelo abaixo do ombro.', 'Eleve o quadril até alinhar o tronco.', 'Sustente e repita do outro lado.']],
+  ['bird-dog', 'Bird dog', 'Core', 0, '', ['Punhos','Joelhos','Lombar'], false, ['Comece com mãos e joelhos apoiados.', 'Estenda braço e perna opostos sem girar o quadril.', 'Volte ao centro e alterne.']],
+  ['hanging-knee-raise', 'Elevação de joelhos na barra', 'Core', 2, 'Barra fixa', ['Punhos','Ombros','Lombar'], false, ['Suspenda-se na barra sem balançar.', 'Eleve os joelhos em direção ao peito.', 'Estenda as pernas lentamente.']],
+  ['tuck-sit', 'Tuck L-sit', 'Core', 1, 'Paralelas', ['Punhos','Ombros','Lombar'], true, ['Apoie as mãos nas paralelas com os cotovelos estendidos.', 'Eleve os pés mantendo os joelhos dobrados.', 'Sustente sem encolher os ombros.']],
+  ['l-sit', 'L-sit', 'Core', 2, 'Paralelas', ['Punhos','Ombros','Lombar'], true, ['Apoie as mãos nas paralelas com os braços estendidos.', 'Eleve as pernas à frente até formar um L.', 'Mantenha o controle e volte ao apoio.'], 'https://www.crossfit.com/essentials/the-l-sit'],
+];
+builtIn.push(...movementLibrary.map(([id, name, group, level, gear, avoid, timed, steps, video]) => ({
+  id, name, group, level, gear, avoid, timed, steps, video,
+})));

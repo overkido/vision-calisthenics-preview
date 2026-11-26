@@ -1,7 +1,7 @@
 export const levels = ['Iniciante', 'Intermediário', 'Avançado'] as const;
 export const goals = ['Força', 'Hipertrofia', 'Resistência', 'Habilidades', 'Emagrecimento'];
 export const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-export const equipment = ['Barra fixa', 'Paralelas', 'Elástico'];
+export const equipment = ['Barra fixa', 'Paralelas', 'Elástico', 'Argolas', 'Banco firme'];
 export const limits = ['Punhos', 'Ombros', 'Joelhos', 'Lombar'];
 export type Profile = {
   name: string; age: number; weight: number; height: number; waist?: number;

@@ -4,15 +4,15 @@ import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 import { colors as c } from '../theme';
 import { Button, Card, Field, Label } from '../components/ui';
 
-export const body = { color: c.muted, fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21 };
+export const body = { color: c.muted, fontFamily: 'Montserrat_400Regular', fontSize: 14, lineHeight: 21 };
 export const row = { flexDirection: 'row', flexWrap: 'wrap', gap: 10 } as const;
 export const stack = { gap: 14 } as const;
-export const heading = { color: c.white, fontFamily: 'Poppins_700Bold', fontSize: 32, lineHeight: 40 };
-export const subheading = { color: c.white, fontFamily: 'Poppins_600SemiBold', fontSize: 20 };
+export const heading = { color: c.white, fontFamily: 'Montserrat_700Bold', fontSize: 32, lineHeight: 40 };
+export const subheading = { color: c.white, fontFamily: 'Montserrat_600SemiBold', fontSize: 20 };
 export const Caption = ({ children, style }: { children: ReactNode; style?: TextStyle }) => <Text style={[body, style]}>{children}</Text>;
 export const Title = ({ children }: { children: ReactNode }) => <Text accessibilityRole="header" style={heading}>{children}</Text>;
 export const Subtitle = ({ children }: { children: ReactNode }) => <Text accessibilityRole="header" style={subheading}>{children}</Text>;
-export const Tag = ({ children }: { children: ReactNode }) => <Text style={{ color: c.green, fontFamily: 'Inter_600SemiBold', letterSpacing: 1.8, fontSize: 11 }}>{children}</Text>;
+export const Tag = ({ children }: { children: ReactNode }) => <Text style={{ color: c.green, fontFamily: 'Montserrat_600SemiBold', letterSpacing: 1.8, fontSize: 11 }}>{children}</Text>;
 
 export function Options<T extends string | number>({ label, options, selected, toggle, display = String }: {
   label: string; options: readonly T[]; selected: readonly T[]; toggle: (option: T) => void; display?: (option: T) => string;

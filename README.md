@@ -1,6 +1,6 @@
 # VISION Calisthenics
 
-Aplicativo de calistenia em português, desenvolvido no projeto Expo existente. A mesma base React Native, TypeScript e Expo Router atende Android, iOS e web. A interface usa a marca do projeto, Poppins e Inter, fundo `#10151C`, cards `#2A2D36` e verde `#00E676`.
+Aplicativo de calistenia em português, desenvolvido no projeto Expo existente. A mesma base React Native, TypeScript e Expo Router atende Android, iOS e web. A interface usa a marca do projeto, Montserrat, fundo `#10151C`, cards `#2A2D36` e verde `#00E676`.
 
 ## Executar
 
