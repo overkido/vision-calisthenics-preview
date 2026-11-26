@@ -1,3 +1,4 @@
+import { VisionNutri } from './VisionNutri';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Notice } from '../components/ui';
@@ -6,7 +7,7 @@ import { ingredientGroups, mealTypes, nutritionFocus, nutritionInsight, parseGoa
 import { newKey, type Store } from './store';
 import { Button, Caption, Card, Field, Meter, NumberField, Options, row, stack, Subtitle, Tag } from './ui';
 
-type Panel = 'Resumo' | 'Registrar prato' | 'Minha meta';
+type Panel = 'Assistente' | 'Resumo' | 'Registrar prato' | 'Minha meta';
 type Values = { calories: string; protein: string; carbs: string; fat: string };
 const blank: Values = { calories: '', protein: '', carbs: '', fat: '' };
 function values(fields: Values) {
@@ -26,7 +27,7 @@ function NutrientFields({ fields, set, suffix }: { fields: Values; set: (v: Valu
   </>;
 }
 export function NutritionAssistant({ store }: { store: Store }) {
-  const [panel, setPanel] = useState<Panel>('Resumo');
+  const [panel, setPanel] = useState<Panel>('Assistente');
   const [error, setError] = useState('');
   const goal = store.get('targets')?.nutrition;
   const [focus, setFocus] = useState(goal?.focus ?? nutritionFocus[0]);
@@ -57,8 +58,9 @@ export function NutritionAssistant({ store }: { store: Store }) {
   function change(next: Panel) { setError(''); setPanel(next); }
   return <View style={stack}>
     <Card style={{ ...stack, backgroundColor: '#14281F', borderColor: '#2A6549' }}>
-      <Tag>NUTRIÇÃO VISION</Tag><Subtitle>Sua assistência de nutrição</Subtitle>
-      <Options label="O QUE VAMOS FAZER?" options={['Resumo','Registrar prato','Minha meta'] as const} selected={[panel]} toggle={change} />
+      <Tag>ALIMENTAÇÃO E TREINO</Tag><Subtitle>Vision Nutri</Subtitle>
+      <Options label="O QUE VAMOS FAZER?" options={['Assistente','Resumo','Registrar prato','Minha meta'] as const} selected={[panel]} toggle={change} />
+      {panel === 'Assistente' && <VisionNutri store={store} />}
       {panel === 'Resumo' && <>
         <Caption>{nutritionInsight(todays.map(entry => entry.value),goal)}</Caption>
         {goal && <Caption>{goal.focus}{goal.by ? ` · até ${goal.by.split('-').reverse().join('/')}${goal.by < day ? ' (prazo encerrado)' : ''}` : ''}</Caption>}

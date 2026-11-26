@@ -1,0 +1,3 @@
+[functions.vision-nutri]
+verify_jwt = true
+entrypoint = "./functions/vision-nutri/index.js"

@@ -54,3 +54,11 @@ Tokens nativos são persistidos com SecureStore. No navegador, a sessão usa o a
 - `tests/rls.sql` é um teste de integração para banco descartável com a migração aplicada. Exercita isolamento, escrita administrativa e exclusão de conta.
 - Para publicar, vincule o projeto EAS e os identificadores de pacote à sua conta de desenvolvedor. Valide builds assinados, ícones/splash, URLs da política de privacidade e metadados exigidos pelas lojas. Exercite notificações e retorno do OAuth em aparelhos físicos.
 - Configure o workflow de Pages com variáveis de Supabase quando a homologação estiver pronta. O repositório pode gerar uma prévia local sem essas variáveis.
+
+### Vision Nutri
+
+Em Alimentação, a assistência combina duas janelas de sete dias, refeições registradas, minutos de atividade, rotina e objetivo. As médias usam apenas dias com registros. A sugestão de horário é flexível e as metas continuam editáveis pelo usuário.
+
+Na prévia web sem backend, a conversa carrega Transformers.js e o modelo Qwen2.5-0.5B-Instruct quantizado em um Web Worker após a primeira pergunta. Reserve aproximadamente 790 MB para o modelo, além do runtime e de memória para inferência. As mensagens ficam em memória e a inferência acontece no navegador. Acesso ao CDN jsDelivr e ao Hugging Face é necessário para o primeiro uso.
+
+Para usar Groq com contas autenticadas no web e no nativo, configure o Supabase da aplicação, defina o segredo GROQ_API_KEY no servidor e publique a função vision-nutri com verificação de autenticação. GROQ_MODEL substitui o modelo padrão. A função confirma a sessão antes de chamar a Groq. As credenciais do provedor ficam fora do bundle Expo. A consulta envia um recorte dos registros e as últimas mensagens quando o usuário pede uma resposta.
