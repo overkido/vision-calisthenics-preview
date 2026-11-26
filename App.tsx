@@ -293,7 +293,7 @@ function AppContent() {
       case 'Início': content = <Home {...{ profile, workouts, store, moves, planTitle, start, wide }} go={enter} />; break;
       case 'Treino ativo': content = active && <ActiveWorkout active={active} store={store} profile={profile} back={() => go('Treinos')} />; break;
       case 'Treinos': content = <Plan moves={moves} title={planTitle} profile={profile} start={start} resume={!!active} library={() => enter('Biblioteca')} />; break;
-      case 'Biblioteca': content = <Library catalog={store.catalog} favorite={profile.favoriteExercises ?? []} toggleFavorite={id => {
+      case 'Biblioteca': content = <Library catalog={store.catalog} profile={profile} moves={moves} favorite={profile.favoriteExercises ?? []} toggleFavorite={id => {
         const favorites = profile.favoriteExercises ?? [];
         store.save('profile', { ...profile, favoriteExercises: favorites.includes(id) ? favorites.filter(x => x !== id) : [...favorites,id] });
       }} />; break;

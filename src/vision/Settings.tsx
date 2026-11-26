@@ -137,7 +137,7 @@ export function Admin({ store }: { store: Store }) {
       <Field label="Identificador" value={id} onChangeText={setId} maxLength={60} />
       <Field label="Nome" value={name} onChangeText={setName} maxLength={100} />
       <Options label="GRUPO" options={['Empurrar','Puxar','Pernas','Core']} selected={[group]} toggle={setGroup} />
-      <Options label="NÍVEL" options={[0,1,2]} selected={[level]} toggle={setLevel} display={n => levels[n]} />
+      <Options label="NÍVEL" options={[0,1,2,3]} selected={[level]} toggle={setLevel} display={n => levels[n]} />
       <Options label="EQUIPAMENTO" options={['', ...equipment]} selected={[gear]} toggle={setGear} display={x => x || 'Sem equipamento'} />
       <Options label="LIMITAÇÕES" options={limits} selected={avoid} toggle={x => setAvoid(avoid.includes(x) ? avoid.filter(y => y !== x) : [...avoid, x])} />
       <Options label="CONTAGEM" options={['Repetições','Segundos']} selected={[timed ? 'Segundos' : 'Repetições']} toggle={x => setTimed(x === 'Segundos')} />

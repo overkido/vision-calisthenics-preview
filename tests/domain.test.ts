@@ -22,11 +22,13 @@ test('progride após duas sessões completas, mantendo a meta se houve falha', (
   const move = moves[0];
   const workouts: Workout[] = [1, 2].map(i => ({
     day: dateKey(monday), id: 'workout:' + i, title: 'Força', moves, seconds: 300,
-    sets: Array.from({ length: move.sets }, () => ({ id: move.exercise.id, amount: move.target, target: move.target })),
+    sets: Array.from({ length: move.sets }, () => ({ id: move.exercise.id, amount: move.target, target: move.target, quality: 'Controlada' as const })),
   }));
   equal(plan(profile, builtIn, workouts, monday)[0].target, move.target + 1);
-  workouts[1].sets[0].amount = 0;
+  workouts[1].sets[0].quality = 'Com ajustes';
   equal(plan(profile, builtIn, workouts, monday)[0].target, move.target);
+  workouts[0].sets[0].quality = 'Sem controle';
+  equal(plan(profile, builtIn, workouts, monday)[0].target, move.target - 1);
 });
 test('preserva cronômetro e descanso ao pausar e retomar', () => {
   const moves = [{ ...plan(profile, builtIn, [], monday)[0], sets: 2 }];

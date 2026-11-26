@@ -1,9 +1,16 @@
+import { useEffect, useId, useState } from 'react';
+import { Image, View } from 'react-native';
+import { Button, Caption, Options, stack } from './ui';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Stop, Text } from 'react-native-svg';
 import type { Exercise } from './domain';
 
 type Point = [number, number];
 type Pose = [head: Point, shoulder: Point, hip: Point, elbow: Point, hand: Point, knee: Point, foot: Point];
 const poses: Record<string, Pose> = {
+  mountain: [[88,82],[76,95],[47,111],[79,118],[83,141],[66,123],[41,139]],
+  cat: [[88,107],[79,92],[47,92],[83,120],[88,142],[31,142],[12,142]],
+  cow: [[96,87],[80,103],[47,94],[83,120],[88,142],[31,142],[12,142]],
+  superman: [[94,115],[81,123],[50,138],[96,113],[111,104],[29,128],[9,120]],
   stand: [[59,25],[59,46],[59,92],[63,69],[62,87],[59,118],[62,143]],
   seated: [[63,47],[60,64],[55,100],[67,81],[77,93],[89,101],[92,142]],
   squat: [[72,52],[67,67],[48,101],[84,76],[108,76],[78,104],[67,143]],
@@ -47,6 +54,7 @@ const poses: Record<string, Pose> = {
   calf: [[59,19],[59,40],[59,86],[63,63],[62,81],[59,113],[66,139]],
 };
 const sequences: Record<string, [string, string, string?]> = {
+  'mountain-climber':['high','mountain'], 'cat-cow':['cow','cat'], superman:['prone','superman'],
   wall:['wall','wallLow','wall'], pushup:['high','low'], dip:['dip','dipLow','rails'],
   'prone-row':['prone','pronePull'], 'band-row':['row','rowHigh','band'], pullup:['hang','pull','bar'],
   squat:['stand','squat'], lunge:['split','lunge'], bridge:['supine','bridge'], plank:['plank','plank'],
@@ -54,7 +62,7 @@ const sequences: Record<string, [string, string, string?]> = {
   'knee-pushup':['knee','kneeLow'], 'diamond-pushup':['high','low'], 'pike-pushup':['pike','pikeLow'],
   'scapular-pushup':['high','scapDown'], chinup:['hang','pull','bar'], 'scapular-pullup':['hang','scap','bar'],
   'dead-hang':['hang','hang','bar'], 'ring-row':['row','rowHigh','rings'], 'negative-pullup':['pull','hang','bar'],
-  'sit-to-stand':['seated','stand','seat'], 'split-squat':['split','lunge'], 'pistol-box':['stand','pistol','seat'],
+  'sit-to-stand':['seated','stand','seat'], 'split-squat':['split','lunge'], 'pistol-box':['stand','pistol','seat'], 'pistol-free':['stand','pistol','freeLeg'],
   'calf-raise':['stand','calf'], 'wall-sit':['wallStart','wallSit','wall'], 'side-plank':['side','side'],
   'bird-dog':['dog','dogLong'], 'hanging-knee-raise':['hang','kneeRaise','bar'], 'tuck-sit':['tuck','tuck','lowRails'], 'l-sit':['tuck','lsit','lowRails'],
 };
@@ -64,32 +72,54 @@ const equipment: Record<string,string> = {
   rings:'M72 10v24m-5 6a5 5 0 1 0 10 0 5 5 0 1 0-10 0', band:'M72 39l42 85',
 };
 
-function figure(pose: Pose, gear?: string) {
+function figure(pose: Pose, fill: string, gear?: string, phase = 1) {
   const [head, shoulder, hip, elbow, hand, knee, foot] = pose;
   const line = (points: Point[]) => 'M' + points.map(point => point.join(' ')).join('L');
   const [sx,sy]=shoulder, [hx,hy]=hip;
   return <G>
     <Path d="M8 146h105" stroke="#41505B" strokeWidth={1} />
     <Ellipse cx={61} cy={147} rx={47} ry={4} fill="#050B0B" />
-    {!!gear && <Path d={equipment[gear]} stroke="#00E676" opacity={.68} strokeWidth={2.5} fill="none" strokeLinecap="round" />}
+    {gear === 'freeLeg' && <Path d={line([hip,[hx+19,hy+19*(1-phase)],[hx+9+48*phase,hy+44*(1-phase)]])} stroke="#536876" strokeWidth={7} fill="none" strokeLinecap="round" />}
+    {!!gear && gear !== 'freeLeg' && <Path d={equipment[gear]} stroke="#00E676" opacity={.68} strokeWidth={2.5} fill="none" strokeLinecap="round" />}
     <Path d={line([hip,knee,foot])} fill="none" stroke="#637989" strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" />
     <Path d={line([shoulder,elbow,hand])} fill="none" stroke="#A9BFCD" strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" />
-    <Path d={`M${sx-7} ${sy-4}Q${sx+3} ${sy-10} ${sx+10} ${sy+4}L${hx+6} ${hy+4}Q${hx} ${hy+9} ${hx-7} ${hy+2}Z`} fill="url(#athlete)" stroke="#10151C" strokeWidth={1} />
-    <Circle cx={head[0]} cy={head[1]} r={9} fill="url(#athlete)" stroke="#C2D4DF" strokeWidth={.7} />
+    <Path d={`M${sx-7} ${sy-4}Q${sx+3} ${sy-10} ${sx+10} ${sy+4}L${hx+6} ${hy+4}Q${hx} ${hy+9} ${hx-7} ${hy+2}Z`} fill={fill} stroke="#10151C" strokeWidth={1} />
+    <Circle cx={head[0]} cy={head[1]} r={9} fill={fill} stroke="#C2D4DF" strokeWidth={.7} />
     <Circle cx={hand[0]} cy={hand[1]} r={3.5} fill="#DCEDF4" />
     <Path d={line([foot,[foot[0]+6,foot[1]+1]])} stroke="#CBDDE6" strokeWidth={4} strokeLinecap="round" />
   </G>;
 }
 
+const originals: Record<string, number> = {
+  pushup: require('../../assets/exercises/pushup.png'),
+  squat: require('../../assets/exercises/squat.png'),
+};
 export function MovementArt({exercise, compact = false}: {exercise: Exercise; compact?: boolean}) {
+  const [playing, setPlaying] = useState(false);
+  const [phase, setPhase] = useState(0);
+  const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  useEffect(() => {
+    if (!playing) return;
+    const start = Date.now();
+    const timer = setInterval(() => setPhase((1 - Math.cos((Date.now() - start) / 1400 * Math.PI)) / 2), 45);
+    return () => clearInterval(timer);
+  }, [playing, exercise.id]);
   const sequence = sequences[exercise.id];
   if (!sequence) return null;
-  const [start,end,gear]=sequence, hold=start===end;
-  return <Svg width="100%" height={compact ? 105 : 202} viewBox={hold ? '0 0 120 172' : '0 0 255 172'} accessibilityLabel={exercise.name + (hold ? ', posição de sustentação' : ', posição inicial e final')}>
-    <Defs><LinearGradient id="athlete" x1="0%" x2="100%" y1="0%" y2="100%"><Stop offset="0" stopColor="#E9F5FA" /><Stop offset="1" stopColor="#557582" /></LinearGradient></Defs>
-    {figure(poses[start],gear)}
-    <Text x={60} y={166} textAnchor="middle" fontSize={11} fill="#92F9C1">{hold ? 'SUSTENTAÇÃO' : 'INÍCIO'}</Text>
-    {!hold && <><Path d="M118 85h18m-5-5 5 5-5 5" fill="none" stroke="#00E676" strokeWidth={2} />
-      <G x={135}>{figure(poses[end],gear)}<Text x={60} y={166} textAnchor="middle" fontSize={11} fill="#92F9C1">EXECUÇÃO</Text></G></>}
-  </Svg>;
+  const [start,end,gear] = sequence;
+  const hold = start === end;
+  const pose = poses[start].map(([x,y],i) => [x + (poses[end][i][0]-x)*phase, y + (poses[end][i][1]-y)*phase]) as Pose;
+  const original = originals[exercise.id];
+  return <View style={stack}>
+    {original && (compact || (!playing && phase === 1)) ? <Image source={original} resizeMode="contain" accessibilityLabel={exercise.name + ', personagem VISION'} style={{ width: '100%', height: compact ? 100 : 200 }} /> :
+    <Svg width="100%" height={compact ? 105 : 195} viewBox="0 0 120 172" accessibilityLabel={exercise.name + ', demonstração esquemática'}>
+      <Defs><LinearGradient id={id} x1="0%" x2="100%" y1="0%" y2="100%"><Stop offset="0" stopColor="#E9F5FA" /><Stop offset="1" stopColor="#557582" /></LinearGradient></Defs>
+      {figure(compact ? poses[end] : pose, 'url(#' + id + ')', gear, compact ? 1 : phase)}
+      <Text x={60} y={166} textAnchor="middle" fontSize={10} fill="#92F9C1">{hold ? 'SUSTENTAÇÃO' : compact || phase === 1 ? 'FINAL DA IDA' : phase === 0 ? 'INÍCIO' : 'MOVIMENTO'}</Text>
+    </Svg>}
+    {!compact && (hold ? <Caption>Observe o alinhamento e respire durante a sustentação.</Caption> : <>
+      <Options label="FASES DO MOVIMENTO" options={[0,.5,1]} selected={playing ? [] : [phase]} toggle={value => { setPlaying(false); setPhase(value); }} display={value => value === 0 ? 'Inicial' : value === 1 ? 'Final' : 'Intermediária'} />
+      <Button title={playing ? 'Pausar demonstração' : 'Animar ida e volta'} secondary onPress={() => { if (playing) setPhase(0); setPlaying(!playing); }} />
+    </>)}
+  </View>;
 }

@@ -1,7 +1,7 @@
-export const levels = ['Iniciante', 'Intermediário', 'Avançado'] as const;
+export const levels = ['Iniciante', 'Intermediário', 'Avançado', 'Elite'] as const;
 export const goals = ['Força', 'Hipertrofia', 'Resistência', 'Habilidades', 'Emagrecimento'];
 export const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-export const equipment = ['Barra fixa', 'Paralelas', 'Elástico', 'Argolas', 'Banco firme'];
+export const equipment = ['Barra fixa', 'Paralelas', 'Elástico', 'Banco firme'];
 export const limits = ['Punhos', 'Ombros', 'Joelhos', 'Lombar'];
 export type Profile = {
   name: string; age: number; weight: number; height: number; waist?: number;
@@ -12,8 +12,10 @@ export type Exercise = {
   id: string; name: string; group: string; level: number; gear: string;
   avoid: string[]; timed: boolean; steps: string[]; video?: string;
 };
+export const executionRatings = ['Controlada', 'Com ajustes', 'Sem controle'] as const;
+export type ExecutionQuality = typeof executionRatings[number];
 export type Move = { exercise: Exercise; sets: number; target: number; rest: number };
-export type Workout = { title: string; moves: Move[]; id: string; day: string; seconds: number; partial?: boolean; sets: { id: string; amount: number; target: number }[] };
+export type Workout = { title: string; moves: Move[]; id: string; day: string; seconds: number; partial?: boolean; sets: { id: string; amount: number; target: number; quality?: ExecutionQuality }[] };
 export type Measure = { day: string; weight: number; waist?: number };
 export type Meal = { day: string; name: string; calories: number; protein: number; carbs: number; fat: number };
 export type Targets = { water?: number; calories: number; workouts: number };
@@ -52,7 +54,12 @@ export function plan(profile: Profile, catalog: Exercise[], workouts: Workout[],
   const days = [...profile.days].sort((a, b) => (a + 6) % 7 - (b + 6) % 7);
   const slot = Math.max(0, days.indexOf(day.getDay()));
   const pushLevel = profile.pushups < 5 ? 0 : profile.level;
+  const pistolReady = workouts.filter(workout => !workout.partial)
+    .map(workout => workout.sets.filter(set => set.id === 'pistol-box'))
+    .filter(sets => sets.length >= 2).slice(0, 2)
+    .filter(sets => sets.every(set => set.quality === 'Controlada' && set.amount >= set.target)).length === 2;
   const eligible = catalog.filter(e =>
+    (e.level < 3 || (e.id === 'pistol-free' && pistolReady)) &&
     e.level <= (e.group === 'Empurrar' ? pushLevel : profile.level) &&
     (!e.gear || profile.equipment.includes(e.gear)) &&
     !e.avoid.some(limit => profile.limits.includes(limit)));
@@ -61,7 +68,7 @@ export function plan(profile: Profile, catalog: Exercise[], workouts: Workout[],
     const pool = eligible.filter(e => e.group === group).sort((a, b) => b.level - a.level);
     const exercise = pool[slot % pool.length];
     if (!exercise) return [];
-    const recent = workouts.filter(w => w.sets.some(s => s.id === exercise.id)).slice(0, 2);
+    const recent = workouts.filter(w => !w.partial && w.sets.some(s => s.id === exercise.id)).sort((a,b) => b.day.localeCompare(a.day)).slice(0, 2);
     const last = recent[0]?.sets.filter(s => s.id === exercise.id) ?? [];
     const initial = exercise.timed
       ? Math.max(5, Math.min(30, Math.floor(profile.plank / 2)))
@@ -69,11 +76,13 @@ export function plan(profile: Profile, catalog: Exercise[], workouts: Workout[],
     const baseline = last.length ? Math.max(...last.map(s => s.target)) : initial;
     const successful = recent.length === 2 && recent.every(w => {
       const series = w.sets.filter(s => s.id === exercise.id);
-      return series.length >= 2 && series.every(s => s.target === baseline && s.amount >= s.target);
+      return series.length >= 2 && series.every(s => s.quality === 'Controlada' && s.target === baseline && s.amount >= s.target);
     });
+    const needsAdjustment = last.some(s => s.quality === 'Sem controle');
+    const adjustment = successful ? (exercise.timed ? 5 : 1) : needsAdjustment ? -(exercise.timed ? 5 : 1) : 0;
     return [{
-      exercise, target: Math.min(exercise.timed ? 60 : 20, baseline + (successful ? (exercise.timed ? 5 : 1) : 0)),
-      sets: profile.goal === 'Hipertrofia' || profile.level === 2 ? 3 : 2,
+      exercise, target: Math.min(exercise.timed ? 60 : 20, Math.max(1, baseline + adjustment)),
+      sets: profile.goal === 'Hipertrofia' || profile.level >= 2 ? 3 : 2,
       rest: profile.goal === 'Força' ? 90 : profile.goal === 'Resistência' ? 40 : 60,
     }];
   });
@@ -88,7 +97,7 @@ export function toggleClock(active: Active, now: number): Active {
   if (active.clock === null) return { ...active, clock: now, restUntil: now + active.restLeft, restLeft: 0 };
   return { ...active, elapsed: active.elapsed + Math.max(0, now - active.clock), clock: null, restLeft: Math.max(0, active.restUntil - now) };
 }
-export function completeSet(active: Active, amount: number, now: number): Active {
+export function completeSet(active: Active, amount: number, now: number, quality?: ExecutionQuality): Active {
   const move = active.moves[active.index];
   if (!move || active.clock === null || restTime(active, now) || !Number.isInteger(amount) || amount < 0) {
     throw new Error('Retome o treino e aguarde o descanso para registrar a série.');
@@ -97,7 +106,7 @@ export function completeSet(active: Active, amount: number, now: number): Active
   const index = active.index + Number(next);
   return {
     ...active, index, set: next ? 0 : active.set + 1,
-    sets: [...active.sets, { id: move.exercise.id, amount, target: move.target }],
+    sets: [...active.sets, { id: move.exercise.id, amount, target: move.target, quality }],
     restUntil: index < active.moves.length ? now + move.rest * 1000 : 0,
   };
 }

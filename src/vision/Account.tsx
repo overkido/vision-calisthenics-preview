@@ -199,7 +199,7 @@ export function ProfileForm({ initial, onSave }: { initial?: Profile; onSave: (p
     {step === 2 && goals.map((option,i) => <Pick key={option} title={option} active={goal === option} onPress={() => setGoal(option)}
       description={['Aumentar sua força','Ganhar massa muscular','Melhorar o condicionamento','Evoluir nos movimentos de calistenia','Apoiar a redução de gordura corporal'][i]} />)}
     {step === 3 && levels.map((option,i) => <Pick key={option} title={option} active={level === i} onPress={() => setLevel(i)}
-      description={['Estou começando ou tenho pouca prática.','Já treino há um tempo e domino os básicos.','Tenho boa base e busco evoluir em habilidades.'][i]} />)}
+      description={['Estou começando ou tenho pouca prática.','Já treino há um tempo e domino os básicos.','Tenho boa base e busco evoluir em habilidades.','Busco desenvolver habilidades de alta complexidade.'][i]} />)}
     {step === 4 && <>
       <Options label="DIAS DA SEMANA" options={[1,2,3,4,5,6,0]} selected={days} toggle={day => setDays(toggle(days,day))} display={day => weekdays[day]} />
       <Options label="TEMPO POR TREINO" options={[30,45,60,90]} selected={[minutes]} toggle={setMinutes} display={value => value+' min'} />
