@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
+import { askCoach } from './coachModel';
+import { coachPrompt } from './coachPrompt';
 import { backend } from '../auth/authService';
 import { targets, weekdays, type CoachTurn } from './domain';
 import { coachReport, nextMeal, groundedReply, quickTopic } from './coachReport';
@@ -14,25 +16,22 @@ export function VisionNutri({store}:{store:Store}) {
   const [routineNote,setRoutineNote] = useState('');
   const [question,setQuestion] = useState('');
   const [turns,setTurns] = useState<CoachTurn[]>([]);
-  const [offerModel,setOfferModel] = useState(false);
   const [busy,setBusy] = useState('');
   const [showReport,setShowReport] = useState(false);
   const [showRoutine,setShowRoutine] = useState(false);
   const [pending,setPending] = useState('');
   const [error,setError] = useState('');
-  const worker = useRef<Worker | null>(null);
   const run = useRef(0);
-  useEffect(()=>()=>{run.current++; worker.current?.terminate();},[]);
+  useEffect(()=>()=>{run.current++;},[]);
   const report = coachReport(store.list('meal').map(e=>e.value),store.list('workout').map(e=>e.value));
   const {atual,anterior} = report;
   const difference = atual.minutosRegistrados-anterior.minutosRegistrados;
   const local = Platform.OS==='web' && !backend;
-  function cancel() { run.current++; worker.current?.terminate(); worker.current=null; setBusy('');setPending(''); }
-  async function ask(input:string, selected?: 'A'|'B', useModel = false) {
+  function cancel() { run.current++; setBusy('');setPending(''); }
+  async function ask(input:string, selected?: 'A'|'B') {
     const text=input.trim();
     if (busy) return;
     if (!text) {setError('Escreva uma pergunta sobre a sua alimentação.');return;}
-    setOfferModel(false);
     const id=++run.current;
     const context={...report,objetivoNutricional:saved?.nutrition,objetivoFisico:profile?.goal,faixaEtaria:profile && profile.age<18?'menor de idade':'adulto',diasPlanejados:profile?.days.map(d=>weekdays[d]),rotina:saved?.coachRoutine};
     const history:CoachTurn[]=[...turns.slice(-6),{role:'user',content:text}];
@@ -43,13 +42,16 @@ export function VisionNutri({store}:{store:Store}) {
       if(!backend){
         const topic=selected??quickTopic(text);
         if(topic){finish(groundedReply(topic,report,profile?.days??[],saved?.coachRoutine,saved?.nutrition));return;}
-        if(!local){finish(groundedReply('D',report,profile?.days??[]));return;}
-        if(!useModel){setOfferModel(true);setBusy('');setPending('');return;}
-        const client=worker.current ?? new Worker((process.env.EXPO_PUBLIC_BASE_URL??'')+'/vision-nutri-worker.js',{type:'module'});
-        worker.current=client;
-        client.onmessage=({data})=>{if(run.current!==id)return;if(data.error)fail(data.error);else if(data.intent)finish(groundedReply(data.intent, report, profile?.days??[], saved?.coachRoutine, saved?.nutrition));else setBusy(data.status);};
-        client.onerror=()=>{client.terminate();worker.current=null;fail('O navegador impediu o carregamento da IA. Tente novamente em uma aba do navegador.');};
-        client.postMessage({question:history.slice(-3).map(t=>t.role+': '+t.content).join('\n')});
+        const greeting=/^(oi|olá|ola|bom dia|boa tarde|boa noite)[!. ?]*$/i.test(text);
+        if(greeting){finish('Oi! Qual refeição você quer organizar hoje? Posso usar os pratos do seu diário e o horário do seu treino.');return;}
+        const lastUser=turns.filter(t=>t.role==='user').at(-1);
+        const previousTopic=lastUser && quickTopic(lastUser.content);
+        if(previousTopic && /^(e (hoje|agora)|quanto falta|qual (a )?meta)[?. !]*$/i.test(text)){
+          finish(groundedReply(previousTopic,report,profile?.days??[],saved?.coachRoutine,saved?.nutrition));return;
+        }
+        const generation=local && askCoach([{role:'system',content:coachPrompt+' Para esta conversa geral, não estime valores nutricionais nem atribua registros ao usuário. Se faltarem informações, faça uma pergunta breve.'},...history]);
+        const fallback=groundedReply('D',report,profile?.days??[],saved?.coachRoutine,saved?.nutrition);
+        finish(generation ? await generation.catch(()=>fallback) : fallback);
       } else {
 
         if(!(await backend.auth.getSession()).data.session) throw Error('Entre na sua conta para conversar com o Vision Nutri na nuvem.');
@@ -64,9 +66,8 @@ export function VisionNutri({store}:{store:Store}) {
     <Caption>{!backend?'Pergunte sobre suas refeições, horários, proteína, calorias ou evolução semanal.':'Ao enviar, você compartilha a pergunta, o resumo alimentar, sua rotina e os treinos com a Groq para gerar uma resposta.'}</Caption>
     {turns.map((t,i)=><View key={i}><Tag>{t.role==='assistant'?'VISION NUTRI':'VOCÊ'}</Tag><Caption>{t.content}</Caption></View>)}
     {!!pending&&<View accessibilityLiveRegion="polite"><Tag>VOCÊ</Tag><Caption>{pending}</Caption></View>}
-    <Field returnKeyType="send" onSubmitEditing={()=>void ask(question)} label="Sua pergunta" placeholder="O que posso comer antes do treino de hoje?" maxLength={450} value={question} onChangeText={v=>{setQuestion(v);setOfferModel(false);setError('');}}/>
+    <Field returnKeyType="send" onSubmitEditing={()=>void ask(question)} label="Sua pergunta" placeholder="O que posso comer antes do treino de hoje?" maxLength={450} value={question} onChangeText={v=>{setQuestion(v);setError('');}}/>
     <Button title="Enviar ao Vision Nutri" loading={!!busy} onPress={()=>void ask(question)}/>
-    {offerModel&&<><Caption>Posso tentar interpretar essa pergunta com o modelo de linguagem no dispositivo. O download tem cerca de 790 MB. Você também pode reformular a pergunta.</Caption><Button secondary title="Usar modelo de linguagem" onPress={()=>void ask(question,undefined,true)}/></>}
     {!!busy&&<><Caption>{busy}</Caption><Button title="Cancelar consulta" secondary onPress={cancel}/></>}
     {!!error&&<Caption>{error}</Caption>}
     <Button secondary title="Analisar minha semana" loading={!!busy} onPress={()=>void ask('Como minha alimentação registrada acompanhou meus treinos nesta semana? Compare com a anterior e sugira um ajuste prático.','A')}/>

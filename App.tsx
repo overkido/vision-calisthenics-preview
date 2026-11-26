@@ -1,3 +1,4 @@
+import { prepareCoach } from './src/vision/coachModel';
 import { typeface } from './src/typography';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, useWindowDimensions, View } from 'react-native';
@@ -167,6 +168,12 @@ function Home({ profile, workouts, store, moves, planTitle, start, go, wide }: {
 }
 
 function AppContent() {
+  useEffect(()=>{
+    if (Platform.OS!=='web' || backend) return;
+    prepareCoach();
+    window.addEventListener('online',prepareCoach);
+    return ()=>window.removeEventListener('online',prepareCoach);
+  },[]);
   const [loaded, setLoaded] = useState(false);
   const [local, setLocal] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
