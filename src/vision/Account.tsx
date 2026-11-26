@@ -1,3 +1,4 @@
+import { typeface } from '../typography';
 import { useState } from 'react';
 import { Image, Pressable, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -51,8 +52,8 @@ export function Account({ mode, go, local, recovered, issue }: {
   const pill = { borderRadius: 30 };
   if (mode === 'welcome') return <View style={{ gap: 14 }}>
     <EntryArt />
-    <View><Text style={{ color: colors.white, fontFamily: 'Montserrat_700Bold', fontStyle: 'italic', fontSize: 33 }}>Evolua com a</Text>
-      <Text style={{ color: colors.green, fontFamily: 'Montserrat_700Bold', fontStyle: 'italic', fontSize: 39 }}>Calistenia</Text></View>
+    <View><Text style={{ color: colors.white, fontFamily: typeface.italic, fontSize: 33, lineHeight: 36, letterSpacing: -1 }}>Evolua com a</Text>
+      <Text style={{ color: colors.green, fontFamily: typeface.italic, fontSize: 39, lineHeight: 43, letterSpacing: -1.3 }}>Calistenia</Text></View>
     <Caption>{['Treinos personalizados, acompanhamento de evolução e planos para alcançar o seu próximo nível.', 'Acompanhe seu desempenho com dados das suas sessões.', 'Registre refeições, água e lembretes de hidratação.', 'Complete sua meta semanal e acompanhe suas conquistas.'][feature]}</Caption>
     <View style={{ flexDirection: 'row', gap: 7 }}>{features.map(([icon, label], i) => <Pressable key={label} accessibilityRole="button" accessibilityState={{ selected: feature === i }} onPress={() => setFeature(i)} style={{ flex: 1, backgroundColor: colors.graphite, borderWidth: 1, borderColor: feature === i ? colors.green : colors.line, borderRadius: 14, alignItems: 'center', justifyContent: 'center', padding: 5, minHeight: 74, gap: 4 }}>
       <Text style={{ color: colors.green, fontSize: 22 }}>{icon}</Text><Caption style={{ fontSize: 10, lineHeight: 14, textAlign: 'center' }}>{label}</Caption></Pressable>)}</View>
@@ -100,13 +101,13 @@ function EntryArt({login = false}: {login?: boolean}) {
 }
 function InlineAction({label,onPress}: {label:string;onPress:()=>void}) {
   return <Pressable accessibilityRole="button" onPress={onPress} style={{ alignItems: 'center', justifyContent: 'center', minHeight: 35, paddingHorizontal: 4 }}>
-    <Caption style={{ color: colors.green, fontFamily: 'Montserrat_600SemiBold' }}>{label}</Caption>
+    <Caption style={{ color: colors.green, fontFamily: typeface.semibold }}>{label}</Caption>
   </Pressable>;
 }
 function AuthField({label,icon,end,...props}: import('react-native').TextInputProps & {label:string;icon:string;end?:React.ReactNode}) {
   return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.graphite, minHeight: 48 }}>
     <Text style={{ color: colors.muted, fontSize: 19 }}>{icon}</Text>
-    <TextInput {...props} accessibilityLabel={label} placeholder={label} placeholderTextColor={colors.muted} style={{ color: colors.white, minWidth: 0, flex: 1, minHeight: 47, fontFamily: 'Montserrat_400Regular', fontSize: 15 }} />
+    <TextInput {...props} accessibilityLabel={label} placeholder={label} placeholderTextColor={colors.muted} style={{ color: colors.white, minWidth: 0, flex: 1, minHeight: 47, fontFamily: typeface.regular, fontSize: 15 }} />
     {end}
   </View>;
 }
@@ -226,7 +227,7 @@ export function ProfileForm({ initial, onSave }: { initial?: Profile; onSave: (p
 function Pick({title,description,active,onPress,grid}: {title:string;description?:string;active:boolean;onPress:()=>void;grid?:boolean}) {
   return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} onPress={onPress} style={{ flexGrow: grid ? 1 : 0, flexBasis: grid ? '44%' : undefined,
     flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13, minHeight: 52, borderRadius: 14, borderWidth: 1, borderColor: active ? colors.green : colors.line, backgroundColor: active ? '#12392A' : colors.graphite }}>
-    <View style={{ flex: 1 }}><Caption style={{ color: colors.white, fontFamily: 'Montserrat_700Bold' }}>{title}</Caption>{description && <Caption>{description}</Caption>}</View>
+    <View style={{ flex: 1 }}><Caption style={{ color: colors.white, fontFamily: typeface.bold }}>{title}</Caption>{description && <Caption>{description}</Caption>}</View>
     <Caption style={{ color: active ? colors.green : colors.muted }}>{active ? '✓' : '○'}</Caption>
   </Pressable>;
 }

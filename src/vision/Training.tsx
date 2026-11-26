@@ -1,3 +1,4 @@
+import { typeface } from '../typography';
 import { useEffect, useState } from 'react';
 import { MovementArt } from './MovementArt';
 import { Linking, Pressable, View } from 'react-native';
@@ -48,7 +49,7 @@ export function Library({ catalog, favorite, toggleFavorite }: { catalog: Exerci
     </View>;
   }
   return <View style={stack}>
-    <View><Title>Biblioteca de</Title><Caption style={{ color: c.green, fontFamily: 'Montserrat_700Bold', fontSize: 31, lineHeight: 38 }}>Exercícios</Caption></View><Caption>Explore {catalog.length} exercícios de calistenia.</Caption>
+    <View><Title>Biblioteca de</Title><Caption style={{ color: c.green, fontFamily: typeface.display, fontSize: 32, lineHeight: 37, letterSpacing: -0.9 }}>Exercícios</Caption></View><Caption>Explore {catalog.length} exercícios de calistenia.</Caption>
     <Field label="Buscar exercício" value={search} onChangeText={setSearch} placeholder="Flexão, barra fixa, prancha..." />
     <Tabs options={['Todos','Básicos','Força','Isometria']} current={category} select={setCategory} />
     <Subtitle>Grupos musculares</Subtitle>

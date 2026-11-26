@@ -1,3 +1,4 @@
+import { typeface } from './src/typography';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, useWindowDimensions, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -45,7 +46,7 @@ function Nav({ section, go, wide }: { section: Section; go: (section: Section) =
         style={{ flex: wide ? undefined : 1, flexDirection: wide ? 'row' : 'column', gap: wide ? 12 : 3, alignItems: 'center', justifyContent: wide ? 'flex-start' : 'center',
           paddingHorizontal: wide ? 12 : 1, paddingVertical: 9, minHeight: 49, borderRadius: 10, backgroundColor: wide && selected ? '#13352A' : 'transparent' }}>
         <Icon path={path} color={selected ? c.green : c.muted} />
-        <Caption style={{ color: selected ? c.green : c.muted, fontFamily: 'Montserrat_600SemiBold', fontSize: wide ? 14 : 9, lineHeight: 15 }}>{name}</Caption>
+        <Caption style={{ color: selected ? c.green : c.muted, fontFamily: typeface.semibold, fontSize: wide ? 14 : 9, lineHeight: 15 }}>{name}</Caption>
       </Pressable>;
     })}
   </View>;
