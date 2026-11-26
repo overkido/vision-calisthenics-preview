@@ -79,6 +79,16 @@ function CroppedArt({crop, label}: {crop: Crop; label:string}) {
   </View>;
 }
 
+export function WorkoutArt({exercise}: {exercise: Exercise}) {
+  const image = originals[exercise.id];
+  const crop = getCrop(exercise.id);
+  const label = 'Personagem VISION · ' + exercise.name;
+  if (image) return <Image source={image} resizeMode="contain" accessibilityLabel={label} style={{width:'100%',height:180}} />;
+  if (!crop) return <Caption>{exercise.steps[0]}</Caption>;
+  const [, , width, height] = crop.rect;
+  return <View style={{width:Math.min(260,180*width/height),maxWidth:'100%'}}><CroppedArt crop={crop} label={label}/></View>;
+}
+
 const phases = ['Inicial','Execução','Retorno'] as const;
 export function MovementArt({exercise, compact = false}: {exercise: Exercise; compact?: boolean}) {
   const [phase, setPhase] = useState<typeof phases[number]>('Inicial');
