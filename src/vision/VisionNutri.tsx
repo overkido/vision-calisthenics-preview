@@ -24,7 +24,7 @@ export function VisionNutri({store}:{store:Store}) {
   const difference = atual.minutosRegistrados-anterior.minutosRegistrados;
   const local = Platform.OS==='web' && !backend;
   function cancel() { run.current++; worker.current?.terminate(); worker.current=null; setBusy(''); }
-  async function ask(input:string) {
+  async function ask(input:string, selected?: 'A'|'B') {
     const text=input.trim();
     if (!text || busy) return;
     const id=++run.current;
@@ -35,6 +35,7 @@ export function VisionNutri({store}:{store:Store}) {
     const fail=(message:string)=>{if(run.current===id){setError(message);setBusy('');}};
     try {
       if(local){
+        if(selected){finish(groundedReply(selected,report,profile?.days??[],saved?.coachRoutine,saved?.nutrition));return;}
         const client=worker.current ?? new Worker((process.env.EXPO_PUBLIC_BASE_URL??'')+'/vision-nutri-worker.js',{type:'module'});
         worker.current=client;
         client.onmessage=({data})=>{if(run.current!==id)return;if(data.error)fail(data.error);else if(data.intent)finish(groundedReply(data.intent, report, profile?.days??[], saved?.coachRoutine, saved?.nutrition));else setBusy(data.status);};
@@ -65,10 +66,10 @@ export function VisionNutri({store}:{store:Store}) {
     }}/>
     {!!routineNote&&<Caption>{routineNote}</Caption>}
     <Subtitle>Converse com o Vision Nutri</Subtitle>
-    <Caption>{local?'Ao enviar a primeira pergunta, o navegador baixa um modelo de IA de aproximadamente 790 MB. As respostas são geradas neste dispositivo.':'Ao enviar, você compartilha a pergunta, o resumo alimentar, sua rotina e os treinos com a Groq para gerar uma resposta.'}</Caption>
+    <Caption>{local?'Para interpretar perguntas em texto livre, o navegador baixa um modelo de IA de aproximadamente 790 MB. As respostas são geradas neste dispositivo.':'Ao enviar, você compartilha a pergunta, o resumo alimentar, sua rotina e os treinos com a Groq para gerar uma resposta.'}</Caption>
     {turns.map((t,i)=><View key={i}><Tag>{t.role==='assistant'?'VISION NUTRI':'VOCÊ'}</Tag><Caption>{t.content}</Caption></View>)}
-    <Button secondary title="Analisar minha semana" loading={!!busy} onPress={()=>void ask('Como minha alimentação registrada acompanhou meus treinos nesta semana? Compare com a anterior e sugira um ajuste prático.')}/>
-    <Button secondary title="Planejar minha próxima refeição" loading={!!busy} onPress={()=>void ask('Com base no horário de agora, nos meus pratos e no treino, o que posso comer e em qual horário? Explique como ajustar se hoje for descanso.')}/>
+    <Button secondary title="Analisar minha semana" loading={!!busy} onPress={()=>void ask('Como minha alimentação registrada acompanhou meus treinos nesta semana? Compare com a anterior e sugira um ajuste prático.','A')}/>
+    <Button secondary title="Planejar minha próxima refeição" loading={!!busy} onPress={()=>void ask('Com base no horário de agora, nos meus pratos e no treino, o que posso comer e em qual horário? Explique como ajustar se hoje for descanso.','B')}/>
     <Field label="Sua pergunta" placeholder="O que posso comer antes do treino de hoje?" maxLength={450} value={question} onChangeText={setQuestion}/>
     <Button title="Enviar ao Vision Nutri" loading={!!busy} onPress={()=>void ask(question)}/>
     {!!busy&&<><Caption>{busy}</Caption><Button title="Cancelar consulta" secondary onPress={cancel}/></>}
