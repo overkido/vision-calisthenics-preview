@@ -5,3 +5,7 @@ build/
 *.jks
 *.keystore
 *.p8
+
+.env
+.env.*
+!.env.example
