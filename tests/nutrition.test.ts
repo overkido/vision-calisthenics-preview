@@ -40,3 +40,15 @@ test('a IA local não inventa treino ou consumo quando o diário está vazio',()
   match(groundedReply('A',coachReport([],[]),[]),/Ainda não tenho refeições/);
   match(groundedReply('C',coachReport([],[]),[]),/0 g de proteína/);
 });
+import { quickTopic } from '../src/vision/coachReport.ts';
+test('perguntas frequentes têm resposta imediata com o saldo registrado',()=>{
+  equal(quickTopic('QUANTO falta de proteína?'),'C');
+  equal(quickTopic('quantas calorias comi?'),'E');
+  equal(quickTopic('o que posso comer antes do treino?'),'B');
+  equal(quickTopic('tenho alergia, o que comer?'),'D');
+  equal(quickTopic('oi'),undefined);
+  const day=new Date(2026,10,26), report=coachReport([{name:'Prato',day:'2026-11-26',protein:25.5,calories:450,carbs:50,fat:10}],[],day);
+  const goal={focus:'Treino',protein:60,calories:1800};
+  match(groundedReply('C',report,[],undefined,goal),/34,5 g/);
+  match(groundedReply('E',report,[],undefined,goal),/1350 kcal/);
+});

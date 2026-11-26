@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { backend } from '../auth/authService';
 import { targets, weekdays, type CoachTurn } from './domain';
-import { coachReport, nextMeal, groundedReply } from './coachReport';
+import { coachReport, nextMeal, groundedReply, quickTopic } from './coachReport';
 import type { Store } from './store';
 import { Button, Caption, Field, Subtitle, Tag, stack } from './ui';
 
@@ -14,6 +14,7 @@ export function VisionNutri({store}:{store:Store}) {
   const [routineNote,setRoutineNote] = useState('');
   const [question,setQuestion] = useState('');
   const [turns,setTurns] = useState<CoachTurn[]>([]);
+  const [offerModel,setOfferModel] = useState(false);
   const [busy,setBusy] = useState('');
   const [error,setError] = useState('');
   const worker = useRef<Worker | null>(null);
@@ -24,9 +25,11 @@ export function VisionNutri({store}:{store:Store}) {
   const difference = atual.minutosRegistrados-anterior.minutosRegistrados;
   const local = Platform.OS==='web' && !backend;
   function cancel() { run.current++; worker.current?.terminate(); worker.current=null; setBusy(''); }
-  async function ask(input:string, selected?: 'A'|'B') {
+  async function ask(input:string, selected?: 'A'|'B', useModel = false) {
     const text=input.trim();
-    if (!text || busy) return;
+    if (busy) return;
+    if (!text) {setError('Escreva uma pergunta sobre a sua alimentação.');return;}
+    setOfferModel(false);
     const id=++run.current;
     const context={...report,objetivoNutricional:saved?.nutrition,objetivoFisico:profile?.goal,faixaEtaria:profile && profile.age<18?'menor de idade':'adulto',diasPlanejados:profile?.days.map(d=>weekdays[d]),rotina:saved?.coachRoutine};
     const history:CoachTurn[]=[...turns.slice(-6),{role:'user',content:text}];
@@ -34,15 +37,18 @@ export function VisionNutri({store}:{store:Store}) {
     const finish=(answer:string)=>{if(run.current!==id)return;setTurns([...history,{role:'assistant',content:answer.slice(0,2500)}]);setBusy('');setQuestion('');};
     const fail=(message:string)=>{if(run.current===id){setError(message);setBusy('');}};
     try {
-      if(local){
-        if(selected){finish(groundedReply(selected,report,profile?.days??[],saved?.coachRoutine,saved?.nutrition));return;}
+      if(!backend){
+        const topic=selected??quickTopic(text);
+        if(topic){finish(groundedReply(topic,report,profile?.days??[],saved?.coachRoutine,saved?.nutrition));return;}
+        if(!local){finish(groundedReply('D',report,profile?.days??[]));return;}
+        if(!useModel){setOfferModel(true);setBusy('');return;}
         const client=worker.current ?? new Worker((process.env.EXPO_PUBLIC_BASE_URL??'')+'/vision-nutri-worker.js',{type:'module'});
         worker.current=client;
         client.onmessage=({data})=>{if(run.current!==id)return;if(data.error)fail(data.error);else if(data.intent)finish(groundedReply(data.intent, report, profile?.days??[], saved?.coachRoutine, saved?.nutrition));else setBusy(data.status);};
         client.onerror=()=>{client.terminate();worker.current=null;fail('O navegador impediu o carregamento da IA. Tente novamente em uma aba do navegador.');};
         client.postMessage({question:history.slice(-3).map(t=>t.role+': '+t.content).join('\n')});
       } else {
-        if(!backend) throw Error('A conversa no aplicativo nativo precisa da conexão com o servidor. Você também pode usar a versão web.');
+
         if(!(await backend.auth.getSession()).data.session) throw Error('Entre na sua conta para conversar com o Vision Nutri na nuvem.');
         const {data,error:failure}=await backend.functions.invoke('vision-nutri',{body:{context,turns:history}});
         if(failure || !data?.answer) throw Error('O serviço de IA está indisponível. Seu relatório continua acessível.');
@@ -57,6 +63,16 @@ export function VisionNutri({store}:{store:Store}) {
     <Caption>{atual.refeicoes} refeições em {atual.diasComRefeicoes} de 7 dias. {atual.diasComRefeicoes ? 'Média dos dias com registro: '+atual.proteinaPorDiaRegistrado+' g de proteína e '+atual.kcalPorDiaRegistrado+' kcal anotadas.':'Registre uma refeição para começar a acompanhar a alimentação.'}</Caption>
     <Caption>{atual.sessoes} sessões de treino · {atual.minutosRegistrados} min nesta semana móvel. {anterior.sessoes ? 'Na anterior foram '+anterior.minutosRegistrados+' min ('+(difference>=0?'+':'')+difference+' min).':'A semana anterior ainda não tem treinos registrados.'}</Caption>
     {anterior.diasComRefeicoes>0 && <Caption>Nos 7 dias anteriores, você anotou refeições em {anterior.diasComRefeicoes} dias, com média registrada de {anterior.proteinaPorDiaRegistrado} g de proteína e {anterior.kcalPorDiaRegistrado} kcal.</Caption>}
+    <Subtitle>Converse com o Vision Nutri</Subtitle>
+    <Caption>{!backend?'Pergunte sobre suas refeições, horários, proteína, calorias ou evolução semanal.':'Ao enviar, você compartilha a pergunta, o resumo alimentar, sua rotina e os treinos com a Groq para gerar uma resposta.'}</Caption>
+    {turns.map((t,i)=><View key={i}><Tag>{t.role==='assistant'?'VISION NUTRI':'VOCÊ'}</Tag><Caption>{t.content}</Caption></View>)}
+    <Button secondary title="Analisar minha semana" loading={!!busy} onPress={()=>void ask('Como minha alimentação registrada acompanhou meus treinos nesta semana? Compare com a anterior e sugira um ajuste prático.','A')}/>
+    <Button secondary title="Planejar minha próxima refeição" loading={!!busy} onPress={()=>void ask('Com base no horário de agora, nos meus pratos e no treino, o que posso comer e em qual horário? Explique como ajustar se hoje for descanso.','B')}/>
+    <Field label="Sua pergunta" placeholder="O que posso comer antes do treino de hoje?" maxLength={450} value={question} onChangeText={v=>{setQuestion(v);setOfferModel(false);setError('');}}/>
+    <Button title="Enviar ao Vision Nutri" loading={!!busy} onPress={()=>void ask(question)}/>
+    {offerModel&&<><Caption>Posso tentar interpretar essa pergunta com o modelo de linguagem no dispositivo. O download tem cerca de 790 MB. Você também pode reformular a pergunta.</Caption><Button secondary title="Usar modelo de linguagem" onPress={()=>void ask(question,undefined,true)}/></>}
+    {!!busy&&<><Caption>{busy}</Caption><Button title="Cancelar consulta" secondary onPress={cancel}/></>}
+    {!!error&&<Caption>{error}</Caption>}
     <Subtitle>Sua rotina</Subtitle>
     <Field label="Horário habitual do treino" placeholder="Ex.: 18:30" value={hour} maxLength={5} onChangeText={setHour}/>
     <Field label="Preferências, alergias e restrições" placeholder="Ex.: almoço às 12h, evito leite" value={preferences} maxLength={280} onChangeText={setPreferences}/>
@@ -65,14 +81,5 @@ export function VisionNutri({store}:{store:Store}) {
       store.save('targets',{...(store.get('targets')??targets),coachRoutine:{trainingTime:hour,preferences:preferences.trim()}});setRoutineNote('Rotina salva.');
     }}/>
     {!!routineNote&&<Caption>{routineNote}</Caption>}
-    <Subtitle>Converse com o Vision Nutri</Subtitle>
-    <Caption>{local?'Para interpretar perguntas em texto livre, o navegador baixa um modelo de IA de aproximadamente 790 MB. As respostas são geradas neste dispositivo.':'Ao enviar, você compartilha a pergunta, o resumo alimentar, sua rotina e os treinos com a Groq para gerar uma resposta.'}</Caption>
-    {turns.map((t,i)=><View key={i}><Tag>{t.role==='assistant'?'VISION NUTRI':'VOCÊ'}</Tag><Caption>{t.content}</Caption></View>)}
-    <Button secondary title="Analisar minha semana" loading={!!busy} onPress={()=>void ask('Como minha alimentação registrada acompanhou meus treinos nesta semana? Compare com a anterior e sugira um ajuste prático.','A')}/>
-    <Button secondary title="Planejar minha próxima refeição" loading={!!busy} onPress={()=>void ask('Com base no horário de agora, nos meus pratos e no treino, o que posso comer e em qual horário? Explique como ajustar se hoje for descanso.','B')}/>
-    <Field label="Sua pergunta" placeholder="O que posso comer antes do treino de hoje?" maxLength={450} value={question} onChangeText={setQuestion}/>
-    <Button title="Enviar ao Vision Nutri" loading={!!busy} onPress={()=>void ask(question)}/>
-    {!!busy&&<><Caption>{busy}</Caption><Button title="Cancelar consulta" secondary onPress={cancel}/></>}
-    {!!error&&<Caption>{error}</Caption>}
   </View>;
 }
