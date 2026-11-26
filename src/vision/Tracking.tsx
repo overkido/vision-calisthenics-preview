@@ -1,4 +1,3 @@
-import { NutritionAssistant } from './NutritionAssistant';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Notice } from '../components/ui';
@@ -62,7 +61,7 @@ function hydrationEstimate(store: Store) {
   const ml = waterEstimate(profile.age, weight);
   if (ml) return { weight, ml };
 }
-export function Nutrition({ store, reminders }: { store: Store; reminders: () => void }) {
+export function Hydration({ store, reminders }: { store: Store; reminders: () => void }) {
   const [ml, setMl] = useState('250');
   const [error, setError] = useState('');
   const limits = store.get('targets') ?? targets;
@@ -80,8 +79,7 @@ export function Nutrition({ store, reminders }: { store: Store; reminders: () =>
     try { fn(); setError(''); } catch (e) { setError((e as Error).message); }
   }
   return <View style={stack}>
-    <Title>Nutrição e hidratação</Title>
-    <NutritionAssistant store={store} />
+    <Title>Hidratação</Title>
     {!!error && <Notice tone="error">{error}</Notice>}
     <Card style={stack}><Tag>HIDRATAÇÃO · HOJE</Tag><Subtitle>{water}{goal ? ` / ${goal}` : ''} ml</Subtitle>
       {!!goal && <Meter value={water / goal} color="#57C8ED" />}

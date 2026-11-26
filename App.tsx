@@ -15,7 +15,8 @@ import { Account, ProfileForm, type AuthMode } from './src/vision/Account';
 import { dateKey, levels, performance, plan, targets, weekdays, weekStart, type Move, type Profile, type Workout } from './src/vision/domain';
 import { Admin, Settings, clearDeviceReminder, waterReminderKey } from './src/vision/Settings';
 import { useStore, type Store } from './src/vision/store';
-import { Achievements, Nutrition, Progress, todayWater } from './src/vision/Tracking';
+import { Achievements, Hydration, Progress, todayWater } from './src/vision/Tracking';
+import { NutritionAssistant } from './src/vision/NutritionAssistant';
 import { ActiveWorkout, Calendar, Library, Plan } from './src/vision/Training';
 import { Button, Caption, Card, Chart, Meter, row, stack, Subtitle, Tag, Title } from './src/vision/ui';
 
@@ -30,8 +31,8 @@ const navigation = [
   { name: 'Perfil', path: 'M12 3a4 4 0 1 0 0 8 4 4 0 1 0 0-8zm-7 17a7 6 0 0 1 14 0' },
 ] as const;
 type Tab = typeof navigation[number]['name'];
-type Section = Tab | 'Nutrição' | 'Conquistas' | 'Configurações' | 'Administração' | 'Treino ativo' | 'Editar perfil';
-const practicePaths = { Nutrição: 'M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z', Conquistas: 'M8 4h8v6a4 4 0 1 1-8 0zM8 6H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 2v6m-4 0h8' };
+type Section = Tab | 'Hidratação' | 'Vision Nutri' | 'Conquistas' | 'Configurações' | 'Administração' | 'Treino ativo' | 'Editar perfil';
+const practicePaths = { chat:'M3 4h18v13H9l-6 4z', water: 'M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z', Conquistas: 'M8 4h8v6a4 4 0 1 1-8 0zM8 6H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 2v6m-4 0h8' };
 function Icon({ path, color = c.green }: { path: string; color?: string }) {
   return <Svg width={21} height={21} viewBox="0 0 24 24"><Path d={path} stroke={color} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" fill="none" /></Svg>;
 }
@@ -40,7 +41,7 @@ function Nav({ section, go, wide }: { section: Section; go: (section: Section) =
     ? { width: 218, padding: 20, borderRightWidth: 1, borderColor: c.line, backgroundColor: '#121821', gap: 10 }
     : { flexDirection: 'row', justifyContent: 'space-around', paddingTop: 6, borderTopWidth: 1, borderColor: c.line, backgroundColor: '#151C26' }}>
     {wide && <View style={{ marginBottom: 28 }}><Wordmark /></View>}
-    {[...navigation.filter(tab => wide || (section === 'Biblioteca' ? tab.name !== 'Agenda' : tab.name !== 'Biblioteca')), ...((wide || section !== 'Biblioteca') ? [{ name: 'Conquistas' as const, path: practicePaths.Conquistas }] : []), ...(wide ? [{ name: 'Nutrição' as const, path: practicePaths.Nutrição }] : [])].sort((a,b) => Number(a.name === 'Perfil') - Number(b.name === 'Perfil')).map(({ name, path }) => {
+    {[...navigation.filter(tab => wide || (section === 'Biblioteca' ? tab.name !== 'Agenda' : tab.name !== 'Biblioteca')), ...((wide || section !== 'Biblioteca') ? [{ name: 'Conquistas' as const, path: practicePaths.Conquistas }] : []), ...(wide ? [{ name: 'Vision Nutri' as const, path: practicePaths.chat },{ name:'Hidratação' as const, path:practicePaths.water }] : [])].sort((a,b) => Number(a.name === 'Perfil') - Number(b.name === 'Perfil')).map(({ name, path }) => {
       const selected = name === section || (name === 'Treinos' && section === 'Treino ativo');
       return <Pressable key={name} accessibilityRole="tab" accessibilityState={{ selected }} onPress={() => go(name)}
         style={{ flex: wide ? undefined : 1, flexDirection: wide ? 'row' : 'column', gap: wide ? 12 : 3, alignItems: 'center', justifyContent: wide ? 'flex-start' : 'center',
@@ -147,7 +148,7 @@ function Home({ profile, workouts, store, moves, planTitle, start, go, wide }: {
       </Card>
     </View>
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
-      {([['Exercícios','Biblioteca',navigation[2].path,c.green],['Planos','Treinos',navigation[1].path,'#BA8BFA'],['Hidratação','Nutrição',practicePaths.Nutrição,'#57C8ED'],['Alimentação','Nutrição','M4 3v7m3-7v7m3-7v7m-6 0q3 4 6 0m-3 3v8m12-18v18m0-18q-6 6-4 10h4','#FFB95F']] as const)
+      {([['Exercícios','Biblioteca',navigation[2].path,c.green],['Planos','Treinos',navigation[1].path,'#BA8BFA'],['Hidratação','Hidratação',practicePaths.water,'#57C8ED'],['Vision Nutri','Vision Nutri','M4 3v7m3-7v7m3-7v7m-6 0q3 4 6 0m-3 3v8m12-18v18m0-18q-6 6-4 10h4','#FFB95F']] as const)
       .map(([label,to,path,color]) => <Pressable key={label} accessibilityRole="button" onPress={() => go(to)} style={{ flexGrow: 1, flexBasis: 74 }}>
         <Card style={{ alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 3 }}><Icon path={path} color={color} /><Caption style={{ fontSize: 10 }}>{label}</Caption></Card>
       </Pressable>)}
@@ -299,7 +300,8 @@ function AppContent() {
       }} />; break;
       case 'Agenda': content = <Calendar workouts={workouts} days={profile.days} />; break;
       case 'Evolução': content = <Progress store={store} workouts={workouts} profile={profile} />; break;
-      case 'Nutrição': content = <Nutrition store={store} reminders={() => enter('Configurações')} />; break;
+      case 'Vision Nutri': content = <NutritionAssistant store={store} />; break;
+      case 'Hidratação': content = <Hydration store={store} reminders={() => enter('Configurações')} />; break;
       case 'Conquistas': content = <Achievements store={store} workouts={workouts} />; break;
       case 'Configurações': content = <Settings store={store} owner={owner} cloud={cloud} logout={logout} />; break;
       case 'Administração': content = admin && <Admin store={store} />; break;
@@ -312,7 +314,8 @@ function AppContent() {
           <Caption>{session?.user.email || 'Perfil neste dispositivo'}</Caption>
           <Button title="Editar perfil e avaliação" secondary onPress={() => enter('Editar perfil')} />
         </Card>
-        <Button title="Nutrição e hidratação" secondary onPress={() => enter('Nutrição')} />
+        <Button title="Hidratação" secondary onPress={() => enter('Hidratação')} />
+        <Button title="Vision Nutri" secondary onPress={() => enter('Vision Nutri')} />
         <Button title="Metas e conquistas" secondary onPress={() => enter('Conquistas')} />
         <Button title="Configurações e privacidade" secondary onPress={() => enter('Configurações')} />
         {admin && <Button title="Painel administrativo" secondary onPress={() => enter('Administração')} />}
@@ -329,7 +332,7 @@ function AppContent() {
           {app && !wide && <Wordmark />}
           {reminderDue && <Card style={stack}><Subtitle>Hora do treino</Subtitle><Button title="Dispensar aviso" secondary onPress={() => setReminderDue(false)} /></Card>}
           {app && waterReminder && waterDue && <Card style={stack}><Subtitle>Hora de beber água</Subtitle>
-            <Button title="Abrir hidratação" onPress={() => { setWaterDue(false); go('Nutrição'); }} />
+            <Button title="Abrir hidratação" onPress={() => { setWaterDue(false); go('Hidratação'); }} />
             <Button title="Dispensar lembrete de água" secondary onPress={() => setWaterDue(false)} />
           </Card>}
           {content}

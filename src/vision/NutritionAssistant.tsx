@@ -7,7 +7,7 @@ import { ingredientGroups, mealTypes, nutritionFocus, nutritionInsight, parseGoa
 import { newKey, type Store } from './store';
 import { Button, Caption, Card, Field, Meter, NumberField, Options, row, stack, Subtitle, Tag } from './ui';
 
-type Panel = 'Assistente' | 'Resumo' | 'Registrar prato' | 'Minha meta';
+type Panel = 'Chat' | 'Resumo' | 'Registrar prato' | 'Minha meta';
 type Values = { calories: string; protein: string; carbs: string; fat: string };
 const blank: Values = { calories: '', protein: '', carbs: '', fat: '' };
 function values(fields: Values) {
@@ -27,7 +27,7 @@ function NutrientFields({ fields, set, suffix }: { fields: Values; set: (v: Valu
   </>;
 }
 export function NutritionAssistant({ store }: { store: Store }) {
-  const [panel, setPanel] = useState<Panel>('Assistente');
+  const [panel, setPanel] = useState<Panel>('Chat');
   const [error, setError] = useState('');
   const goal = store.get('targets')?.nutrition;
   const [focus, setFocus] = useState(goal?.focus ?? nutritionFocus[0]);
@@ -59,8 +59,8 @@ export function NutritionAssistant({ store }: { store: Store }) {
   return <View style={stack}>
     <Card style={{ ...stack, backgroundColor: '#14281F', borderColor: '#2A6549' }}>
       <Tag>ALIMENTAÇÃO E TREINO</Tag><Subtitle>Vision Nutri</Subtitle>
-      <Options label="O QUE VAMOS FAZER?" options={['Assistente','Resumo','Registrar prato','Minha meta'] as const} selected={[panel]} toggle={change} />
-      {panel === 'Assistente' && <VisionNutri store={store} />}
+      <Options label="VISION NUTRI" options={['Chat','Resumo','Registrar prato','Minha meta'] as const} selected={[panel]} toggle={change} />
+      {panel === 'Chat' && <VisionNutri store={store} />}
       {panel === 'Resumo' && <>
         <Caption>{nutritionInsight(todays.map(entry => entry.value),goal)}</Caption>
         {goal && <Caption>{goal.focus}{goal.by ? ` · até ${goal.by.split('-').reverse().join('/')}${goal.by < day ? ' (prazo encerrado)' : ''}` : ''}</Caption>}
