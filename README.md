@@ -1,56 +1,56 @@
-# Vision Calisthenics Mobile
+# VISION Calisthenics
 
-Protótipo em **React Native + Expo**, preparado para gerar aplicativos nativos para iOS e Android. A interface usa a identidade definida: Obsidian `#080A09`, Graphite `#141816`, Gunmetal `#222925`, Vision Green `#39F279`, Neon Lime `#B5FF6A` e Ice White `#F2F5F3`.
-
-## O que já está no protótipo
-
-- Boas-vindas, cadastro, login e recuperação de senha (estado de configuração pendente).
-- Campos de e-mail/senha, confirmação de senha, validação local e aceite de termos.
-- Ações Google e Apple com resposta explícita de integração pendente; nenhuma autenticação é simulada.
-- Configuração de perfil de atleta e foto opcional, com escolha da galeria ou câmera e recorte quadrado.
-- Início com cartão de treino, XP, nível e sequência; abas nativas para Início, Treinos, Biblioteca, Progresso e Perfil.
-- Logo principal, símbolo e ícone do app usando as imagens fornecidas, em `assets/vision-logo.png`, `assets/vision-symbol.png` e `assets/icon.png`.
-- Configuração Expo/EAS para builds Android e iOS em `app.json` e `eas.json`.
-- Prévia web responsiva com exportação para GitHub Pages pelo workflow em `.github/workflows/deploy-pages.yml`.
-
-O app não cria conta nem salva credenciais: o serviço em `src/auth/authService.ts` é uma fronteira segura provisória que não persiste dados. As telas de conta exibem isso claramente. “Explorar prévia do app” abre o perfil e a home sem criar uma conta. Informações de XP e treinos são demonstrativas e existem somente na sessão atual.
+Aplicativo de calistenia em português, desenvolvido no projeto Expo existente. A mesma base React Native, TypeScript e Expo Router atende Android, iOS e web. A interface usa a marca do projeto, Poppins e Inter, fundo `#10151C`, cards `#2A2D36` e verde `#00E676`.
 
 ## Executar
 
-Requisitos: Node.js compatível com o Expo SDK 58 e pnpm ou npm. A prévia no navegador não depende de simulador ou development build; para aparelhos, use um development build.
+Requer Node 24 e pnpm 11.25.0. O modo **Treinar neste dispositivo** funciona sem configuração externa e guarda os registros reais naquele aparelho ou navegador.
 
 ```sh
-pnpm install
-pnpm web
+corepack pnpm@11.25.0 install --frozen-lockfile
+corepack pnpm@11.25.0 web
+corepack pnpm@11.25.0 test
+corepack pnpm@11.25.0 typecheck
+corepack pnpm@11.25.0 export:web
 ```
 
-Depois de publicar o código em um repositório GitHub e ativar GitHub Pages para usar GitHub Actions como fonte, cada envio à branch `main` gera/atualiza o link web automaticamente. O workflow ajusta o prefixo do endereço do próprio repositório. Para continuar no app nativo, use `pnpm start` e crie/instale um development build. Neste workspace Windows, o build Android local depende do Android SDK; o build iOS pode ser gerado na infraestrutura EAS. A pasta `android/` contém o projeto nativo gerado por Expo Prebuild.
+Sirva a pasta `dist` via HTTP para testar. Em produção use HTTPS, incluindo para câmera e cache offline. Para GitHub Pages, o workflow configura o prefixo do repositório. Para builds de desenvolvimento nativos, use `pnpm android` ou `pnpm ios` com o SDK correspondente. A opção iOS exige macOS para compilação local. Os perfis de EAS já estão em `eas.json`.
 
-## Ativar autenticação real
+## Módulos
 
-1. Escolher e configurar um backend de autenticação (por exemplo, Supabase ou Firebase), incluindo domínio/redirecionamentos, política de senha, recuperação de conta e regras de perfil.
-2. Configurar OAuth do Google para iOS e Android, registrar os identificadores de pacote e URLs de retorno e guardar segredos apenas no provedor/backend.
-3. Configurar Sign in with Apple, incluindo App ID, Service ID, domínio e chave privada Apple no serviço de autenticação; não embutir a chave privada no app.
-4. Implementar o fluxo OAuth com PKCE e callback do esquema `visioncalisthenics`, trocar tokens no SDK/backend escolhido e armazenar sessão com mecanismos seguros do sistema operacional.
-5. Substituir os retornos pendentes do `src/auth/authService.ts` e exercitar o fluxo em builds reais/dispositivos antes da publicação.
+| Módulo | Funcionamento |
+| --- | --- |
+| Boas-vindas e conta | Splash nativa, cadastro e login por e-mail, confirmação, recuperação e OAuth Google/Apple com PKCE. Há modo local independente. |
+| Perfil e avaliação | Foto opcional, nome, idade, peso, altura, cintura, objetivo, dias, equipamento, nível, restrições, repetições de flexão e tempo de prancha. |
+| Plano e treino | Sugere uma sequência conforme o perfil e o dia. Limitações selecionadas excluem movimentos relacionados. Uma limitação em texto livre pausa geração até revisão. O treino registra séries com repetições ou segundos, descanso e pausas. A sessão em andamento persiste após recarregar. |
+| Progressão | Aumenta um passo quando as duas últimas sessões comparáveis atingem o mesmo alvo em todas as séries registradas. O histórico mantém o alvo e o resultado de cada série. A substituição ocorre antes da primeira série do movimento e respeita equipamento, nível e restrições. |
+| Biblioteca | Busca, grupos musculares, instruções em português e links de demonstração nos movimentos com vídeo associado. Vídeos externos exigem conexão e podem abrir fora do app. |
+| Agenda e evolução | Calendário mensal, indicação dos dias agendados e concluídos, histórico por sessão, gráfico de peso, cintura e séries com filtros de período. Dias previstos são calculados a partir da disponibilidade atual. |
+| Alimentação e hidratação | Registro diário manual de refeições, macros e consumo de água com remoção de lançamentos e metas editáveis. |
+| Metas e conquistas | Primeiro treino, dez treinos, consistência semanal e hidratação diária calculados com dados registrados. |
+| Lembretes | Um lembrete semanal por perfil. Agendamento local no aparelho configurado e aviso dentro do app web aberto. Configurar em outro aparelho exige ativar o agendamento naquele aparelho. |
+| Privacidade | Sair, revisar o estado da sincronização, excluir dados locais e solicitar exclusão da própria conta. Dados locais e dados de contas são espaços independentes. |
+| Administração | Publicação, edição e remoção de entradas remotas do catálogo. Ao remover uma personalização de um exercício do catálogo embarcado, a versão embarcada reaparece. |
 
-Não há credenciais Google/Apple, conta de backend, conta EAS ou identificador EAS deste produto neste workspace. Os botões, portanto, não afirmam que o usuário entrou. Os identificadores de pacote atuais são provisórios e precisam ser confirmados antes de publicar; App Store Connect e Google Play também exigem contas, metadados, ícones/splash finais, política de privacidade e builds assinados.
+## Ativar Supabase
 
-## Estrutura
+1. Crie ou selecione um projeto de homologação e aplique `supabase/migrations/202611260001_vision.sql` pelo Supabase CLI ou SQL Editor. A migração cria as tabelas, RLS e função de exclusão da própria conta.
+2. Copie `.env.example` para `.env.local`. Configure `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Ambas são públicas e a proteção de dados depende do RLS. Guarde chaves secretas no servidor. Para GitHub Pages, configure as duas variáveis no ambiente de build. Para EAS, configure-as no ambiente correspondente.
+3. Em Auth, configure Site URL e autorize a URL web exata do app, a URL com `?recovery=1`, `visioncalisthenics://auth` e `visioncalisthenics://reset`. Confirme as URLs reais geradas pelo build instalado. Use SMTP de produção para os e-mails de confirmação e recuperação. Os fluxos PKCE devem ser concluídos no mesmo contexto em que foram iniciados.
+4. Habilite e configure Google e Apple no Supabase. Use a URL de retorno do próprio Supabase exibida no painel para cadastrar o callback junto aos provedores. Configure Apple App ID, Service ID e domínio na conta da Apple. O segredo Apple deve ser mantido no Supabase e renovado antes do vencimento.
+5. Conceda administração apenas a operadores autorizados usando `app_metadata.vision_admin` com valor booleano `true` via Auth Admin API em ambiente confiável. O operador deve renovar a sessão para receber o novo JWT. Não conceda a função a partir do cliente.
+6. Teste em duas contas reais, dois aparelhos e um navegador. Valide confirmação, recuperação, ambos os provedores, upload de foto, reconexão, exclusão e os lembretes nativos.
 
-```text
-App.tsx
-app.json
-eas.json
-app.config.js
-\.github/workflows/deploy-pages.yml
-pnpm-lock.yaml
-android/ (projeto nativo Expo)
-assets/icon.png
-assets/vision-mark.svg
-src/
-  auth/authService.ts
-  components/BrandMark.tsx
-  components/ui.tsx
-  theme.ts
-```
+## Dados e offline
+
+Cada conta armazena registros sob seu ID. O cache local conserva edições pendentes e reenvia alterações ao retomar a sessão, ao recuperar conexão ou na tentativa periódica. Entradas individuais de treino, água e alimentação usam chaves independentes. Perfil, metas, medidas do mesmo dia e treino ativo usam o último envio aceito para a mesma chave. A fila não transfere automaticamente dados do modo local para uma conta. Fotos compactadas integram o perfil privado em JSON e são limitadas pelo formulário. O catálogo embarcado permanece disponível offline. A versão web usa um service worker após a primeira visita online ao build exportado.
+
+Tokens nativos são persistidos com SecureStore. No navegador, a sessão usa o armazenamento do navegador. O cache dos registros usa armazenamento local do app, separado por conta. Limpar dados do site ou desinstalar pode remover alterações ainda pendentes.
+
+## Testes e publicação
+
+- `pnpm test` verifica plano, limitações, progressão, cronômetro e validação numérica.
+- `pnpm typecheck` verifica os módulos TypeScript.
+- `tests/rls.sql` é um teste de integração para banco descartável com a migração aplicada. Exercita isolamento, escrita administrativa e exclusão de conta.
+- Para publicar, vincule o projeto EAS e os identificadores de pacote à sua conta de desenvolvedor. Valide builds assinados, ícones/splash, URLs da política de privacidade e metadados exigidos pelas lojas. Exercite notificações e retorno do OAuth em aparelhos físicos.
+- Configure o workflow de Pages com variáveis de Supabase quando a homologação estiver pronta. O repositório pode gerar uma prévia local sem essas variáveis.

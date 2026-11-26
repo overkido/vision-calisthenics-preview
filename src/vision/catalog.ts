@@ -1,0 +1,28 @@
+import type { Exercise } from './domain';
+
+export const builtIn: Exercise[] = [
+  { id: 'wall', name: 'Flexão na parede', group: 'Empurrar', level: 0, gear: '', avoid: ['Punhos', 'Ombros'], timed: false,
+    steps: ['Apoie as mãos na parede na altura do peito.', 'Dobre os cotovelos e aproxime o peito mantendo o tronco alinhado.', 'Empurre a parede até voltar à posição inicial.'] },
+  { id: 'pushup', video: 'https://www.crossfit.com/essentials/the-push-up', name: 'Flexão de braço', group: 'Empurrar', level: 1, gear: '', avoid: ['Punhos', 'Ombros', 'Lombar'], timed: false,
+    steps: ['Apoie as mãos sob os ombros e estenda as pernas.', 'Contraia o abdômen e desça o peito com controle.', 'Estenda os braços mantendo o quadril alinhado.'] },
+  { id: 'dip', video: 'https://www.crossfit.com/essentials/the-dip', name: 'Mergulho nas paralelas', group: 'Empurrar', level: 2, gear: 'Paralelas', avoid: ['Punhos', 'Ombros'], timed: false,
+    steps: ['Apoie as mãos nas paralelas com os braços estendidos.', 'Dobre os cotovelos mantendo os ombros estáveis.', 'Empurre as barras para voltar com controle.'] },
+  { id: 'prone-row', name: 'Remada em decúbito ventral', group: 'Puxar', level: 0, gear: '', avoid: ['Ombros', 'Lombar'], timed: false,
+    steps: ['Deite de bruços com os braços estendidos à frente.', 'Puxe os cotovelos para trás aproximando as escápulas.', 'Estenda os braços com controle sem arquear a lombar.'] },
+  { id: 'band-row', name: 'Remada com elástico', group: 'Puxar', level: 0, gear: 'Elástico', avoid: ['Ombros', 'Lombar'], timed: false,
+    steps: ['Prenda o elástico em um ponto firme.', 'Puxe os cotovelos junto ao tronco sem elevar os ombros.', 'Volte devagar mantendo tensão no elástico.'] },
+  { id: 'pullup', video: 'https://www.crossfit.com/essentials/the-strict-pull-up', name: 'Barra fixa', group: 'Puxar', level: 2, gear: 'Barra fixa', avoid: ['Punhos', 'Ombros'], timed: false,
+    steps: ['Segure a barra com as palmas voltadas para frente.', 'Puxe o peito em direção à barra sem balançar.', 'Desça com controle até estender os braços.'] },
+  { id: 'squat', video: 'https://www.crossfit.com/essentials/the-air-squat', name: 'Agachamento livre', group: 'Pernas', level: 0, gear: '', avoid: ['Joelhos', 'Lombar'], timed: false,
+    steps: ['Posicione os pés aproximadamente na largura dos ombros.', 'Leve o quadril para trás mantendo os pés apoiados.', 'Empurre o chão para retornar em pé.'] },
+  { id: 'lunge', name: 'Afundo reverso', group: 'Pernas', level: 1, gear: '', avoid: ['Joelhos', 'Lombar'], timed: false,
+    steps: ['Dê um passo para trás mantendo o tronco ereto.', 'Dobre os dois joelhos dentro de uma amplitude confortável.', 'Volte à posição inicial e alterne os lados.'] },
+  { id: 'bridge', name: 'Ponte de glúteos', group: 'Pernas', level: 0, gear: '', avoid: ['Lombar'], timed: false,
+    steps: ['Deite de costas com os joelhos flexionados e pés no chão.', 'Eleve o quadril contraindo os glúteos.', 'Desça devagar sem arquear a coluna.'] },
+  { id: 'plank', name: 'Prancha nos antebraços', group: 'Core', level: 0, gear: '', avoid: ['Ombros', 'Lombar'], timed: true,
+    steps: ['Apoie os antebraços com os cotovelos sob os ombros.', 'Estenda as pernas e mantenha o quadril alinhado.', 'Respire normalmente durante a sustentação.'] },
+  { id: 'deadbug', name: 'Dead bug', group: 'Core', level: 0, gear: '', avoid: ['Lombar'], timed: false,
+    steps: ['Deite de costas e eleve os braços e os joelhos.', 'Estenda braço e perna opostos mantendo o tronco firme.', 'Volte ao centro e alterne os lados.'] },
+  { id: 'hollow', name: 'Hollow hold', group: 'Core', level: 1, gear: '', avoid: ['Lombar'], timed: true,
+    steps: ['Deite de costas e contraia o abdômen.', 'Eleve as pernas e os ombros mantendo a lombar apoiada.', 'Sustente a posição respirando normalmente.'] },
+];

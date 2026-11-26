@@ -1,5 +1,5 @@
 export const colors = {
-  obsidian: '#080A09', graphite: '#141816', gunmetal: '#222925',
-  green: '#39F279', lime: '#B5FF6A', white: '#F2F5F3', muted: '#909A93',
-  line: '#2B332E', danger: '#FF7777'
+  obsidian: '#10151C', graphite: '#1B2029', gunmetal: '#2A2D36',
+  green: '#00E676', lime: '#91F8BD', white: '#FFFFFF', muted: '#ADB6C4',
+  line: '#353D49', danger: '#FF686F',
 };
