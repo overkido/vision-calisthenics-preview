@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
-import { askCoach } from './coachModel';
-import { coachContext, describeProfile } from './coachContext';
+import { hostedAnswer, loadHostedCoach, type HostedCoach } from './coachModel';
+import { coachContext } from './coachContext';
 import { coachPrompt } from './coachPrompt';
 import { backend } from '../auth/authService';
 import { targets, type CoachTurn } from './domain';
-import { coachReport, nextMeal, groundedReply, quickTopic } from './coachReport';
+import { coachReport, nextMeal } from './coachReport';
 import type { Store } from './store';
 import { Button, Caption, Field, Subtitle, Tag, stack } from './ui';
 
@@ -29,8 +29,16 @@ export function VisionNutri({store}:{store:Store}) {
   const {atual,anterior} = report;
   const difference = atual.minutosRegistrados-anterior.minutosRegistrados;
   const local = Platform.OS==='web' && !backend;
+  const [client,setClient]=useState<HostedCoach>();
+  const [retry,setRetry]=useState(0);
+  useEffect(()=>{
+    if(!local) return;
+    let live=true;
+    loadHostedCoach().then(value=>{if(live)setClient(value);},e=>{if(live)setError(e.message);});
+    return ()=>{live=false;};
+  },[local,retry]);
   function cancel() { run.current++; setBusy('');setPending(''); }
-  async function ask(input:string, selected?: 'A'|'B') {
+  async function ask(input:string) {
     const text=input.trim();
     if (busy) return;
     if (!text) {setError('Escreva uma pergunta sobre a sua alimentação.');return;}
@@ -42,18 +50,9 @@ export function VisionNutri({store}:{store:Store}) {
     const fail=(message:string)=>{if(run.current===id){setError(message);setBusy('');setPending('');}};
     try {
       if(!backend){
-        const topic=selected??quickTopic(text);
-        const summary=describeProfile(context);
-        const normalized=text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-        const profileQuestion=/meu perfil|meus dados|meu peso|minha altura|minha idade|meu objetivo|meu nivel|quanto (eu )?peso|quantos anos/.test(normalized);
-        const fallback=profileQuestion ? summary : topic ? groundedReply(topic,report,profile?.days??[],saved?.coachRoutine,saved?.nutrition) :
-          summary+' '+(context.hoje.refeicoesAnotadas?'Hoje você anotou '+context.hoje.refeicoesAnotadas+' refeição(ões).':'Ainda não há refeições anotadas hoje.')+' Quer organizar sua próxima refeição ou revisar sua semana?';
-        if(topic==='D'){finish(groundedReply('D',report,profile?.days??[],saved?.coachRoutine,saved?.nutrition));return;}
-        const messages:CoachTurn[]=[{role:'user',content:'Dados atuais do meu cadastro e diário: '+JSON.stringify(context)},...history];
-        const generation=local && askCoach([{role:'system',content:coachPrompt+' Relacione a resposta à pergunta e aos fatos relevantes do cadastro. Use os totais calculados. Não peça um dado já presente. Para perguntas de seguimento, considere a conversa anterior.'},...messages]);
-        if(!generation){finish(fallback);return;}
-        setBusy('Analisando seu perfil e diário…');
-        finish(await generation.catch(()=>fallback));
+        if(!local) throw Error('A IA hospedada está disponível na versão web. O app nativo precisa de uma conexão configurada com o servidor.');
+        if(!client) throw Error('Aguarde a conexão com o Puter ou tente reconectar.');
+        finish(await hostedAnswer(client,coachPrompt,context,history));
       } else {
 
         if(!(await backend.auth.getSession()).data.session) throw Error('Entre na sua conta para conversar com o Vision Nutri na nuvem.');
@@ -61,19 +60,20 @@ export function VisionNutri({store}:{store:Store}) {
         if(failure || !data?.answer) throw Error('O serviço de IA está indisponível. Seu relatório continua acessível.');
         finish(data.answer);
       }
-    } catch(e){fail(e instanceof Error?e.message:'Não foi possível consultar a IA.');}
+    } catch(e){fail(e instanceof Error?e.message:'O Puter não concluiu a consulta. Confira o login, a conexão e o saldo da franquia e tente novamente.');}
   }
   return <View style={stack}>
     <Subtitle>Converse com o Vision Nutri</Subtitle>
-    <Caption>{!backend?'Pergunte sobre suas refeições, horários, proteína, calorias ou evolução semanal.':'Ao enviar, você compartilha a pergunta, seu primeiro nome, idade, medidas, objetivos, rotina, refeições e treinos com a Groq para gerar uma resposta.'}</Caption>
+    <Caption>{local?'Ao enviar, você autoriza compartilhar sua pergunta, conversa recente, primeiro nome, idade, medidas, objetivos, rotina, refeições e treinos com a IA via Puter. No primeiro uso, entre na sua conta Puter. O uso consome sua franquia.':'Ao enviar, você compartilha a pergunta, seu primeiro nome, idade, medidas, objetivos, rotina, refeições e treinos com a Groq para gerar uma resposta.'}</Caption>
     {turns.map((t,i)=><View key={i}><Tag>{t.role==='assistant'?'VISION NUTRI':'VOCÊ'}</Tag><Caption>{t.content}</Caption></View>)}
     {!!pending&&<View accessibilityLiveRegion="polite"><Tag>VOCÊ</Tag><Caption>{pending}</Caption></View>}
     <Field returnKeyType="send" onSubmitEditing={()=>void ask(question)} label="Sua pergunta" placeholder="O que posso comer antes do treino de hoje?" maxLength={450} value={question} onChangeText={v=>{setQuestion(v);setError('');}}/>
-    <Button title="Enviar ao Vision Nutri" loading={!!busy} onPress={()=>void ask(question)}/>
+    <Button title="Enviar ao Vision Nutri" loading={!!busy || (local && !client)} onPress={()=>void ask(question)}/>
     {!!busy&&<><Caption>{busy}</Caption><Button title="Cancelar consulta" secondary onPress={cancel}/></>}
     {!!error&&<Caption>{error}</Caption>}
-    <Button secondary title="Analisar minha semana" loading={!!busy} onPress={()=>void ask('Como minha alimentação registrada acompanhou meus treinos nesta semana? Compare com a anterior e sugira um ajuste prático.','A')}/>
-    <Button secondary title="Planejar minha próxima refeição" loading={!!busy} onPress={()=>void ask('Com base no horário de agora, nos meus pratos e no treino, o que posso comer e em qual horário? Explique como ajustar se hoje for descanso.','B')}/>
+    {local&&!client&&!!error&&<Button title="Reconectar ao Puter" secondary onPress={()=>{setError('');setRetry(v=>v+1);}}/>}
+    <Button secondary title="Analisar minha semana" loading={!!busy || (local && !client)} onPress={()=>void ask('Como minha alimentação registrada acompanhou meus treinos nesta semana? Compare com a anterior e sugira um ajuste prático.')}/>
+    <Button secondary title="Planejar minha próxima refeição" loading={!!busy || (local && !client)} onPress={()=>void ask('Com base no horário de agora, nos meus pratos e no treino, o que posso comer e em qual horário? Explique como ajustar se hoje for descanso.')}/>
     <Button secondary title={showReport?'Fechar relatório':'Ver relatório e próxima refeição'} onPress={()=>setShowReport(!showReport)}/>
     {showReport&&<>
     <Tag>PRÓXIMA REFEIÇÃO</Tag>

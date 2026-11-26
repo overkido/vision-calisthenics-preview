@@ -1,43 +1,29 @@
-// One worker per app session keeps the model warm while navigating between screens.
-let client: Worker | undefined;
-let ready = false;
-let nextId = 0;
-const pending = new Map<number,{resolve:(answer:string)=>void;reject:(error:Error)=>void}>();
-
-function reset() {
-  client?.terminate();
-  client = undefined;
-  ready = false;
-  for (const task of pending.values()) task.reject(new Error('IA local indisponível.'));
-  pending.clear();
+type Message = {role:'system'|'user'|'assistant';content:string};
+export type HostedCoach = {
+  auth:{isSignedIn:()=>boolean;signIn:()=>Promise<unknown>};
+  ai:{chat:(messages:Message[],options:{model:string})=>Promise<{message?:{content?:string}}>}
+};
+declare global { interface Window { puter?:HostedCoach } }
+let loading:Promise<HostedCoach>|undefined;
+export function loadHostedCoach():Promise<HostedCoach> {
+  if(window.puter) return Promise.resolve(window.puter);
+  if(!loading) loading=new Promise<HostedCoach>((resolve,reject)=>{
+    const script=document.createElement('script');
+    const failed=()=>{clearTimeout(timer);script.remove();reject(new Error('O serviço Puter não carregou. Verifique a conexão e tente novamente.'));};
+    const timer=setTimeout(failed,20000);
+    script.src='https://js.puter.com/v2/';
+    script.async=true;
+    script.onload=()=>{clearTimeout(timer);if(window.puter) resolve(window.puter);else failed();};
+    script.onerror=failed;
+    document.head.appendChild(script);
+  }).catch(e=>{loading=undefined;throw e;});
+  return loading;
 }
-
-export function prepareCoach() {
-  if (client || typeof Worker === 'undefined') return;
-  try {
-    client = new Worker((process.env.EXPO_PUBLIC_BASE_URL ?? '') + '/vision-nutri-worker.js',{type:'module'});
-    client.onerror = reset;
-    client.onmessage = ({data}) => {
-      if (data.ready) ready = true;
-      else if (data.failed) reset();
-      else if (data.id) {
-        const task = pending.get(data.id);
-        pending.delete(data.id);
-        if (data.answer) task?.resolve(data.answer);
-        else task?.reject(new Error('IA local indisponível.'));
-      }
-    };
-    client.postMessage({prepare:true});
-  } catch { reset(); }
-}
-
-export function askCoach(messages: {role:string;content:string}[]) {
-  prepareCoach();
-  if (!ready || !client) return undefined;
-  const id = ++nextId;
-  const worker = client;
-  return new Promise<string>((resolve,reject)=>{
-    pending.set(id,{resolve,reject});
-    worker.postMessage({id,messages});
-  });
+export async function hostedAnswer(client:HostedCoach, prompt:string, context:unknown, history:Message[]) {
+  if(!client.auth.isSignedIn()) await client.auth.signIn();
+  if(!client.auth.isSignedIn()) throw new Error('A conexão com a conta Puter não foi concluída.');
+  const result=await client.ai.chat([{role:'system',content:prompt+' Responda diretamente à última mensagem. Quando o usuário disser “sim” ou “quero”, continue a proposta da mensagem anterior. Só mencione dados de perfil relevantes para a pergunta.'},{role:'user',content:'Dados atuais do meu diário: '+JSON.stringify(context)},...history],{model:'gpt-4o-mini'});
+  const answer=result?.message?.content?.trim();
+  if(!answer) throw new Error('O provedor não retornou uma resposta. Tente enviar novamente.');
+  return answer;
 }
