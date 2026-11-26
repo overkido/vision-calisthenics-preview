@@ -16,16 +16,20 @@ export type Move = { exercise: Exercise; sets: number; target: number; rest: num
 export type Workout = { title: string; moves: Move[]; id: string; day: string; seconds: number; sets: { id: string; amount: number; target: number }[] };
 export type Measure = { day: string; weight: number; waist?: number };
 export type Meal = { day: string; name: string; calories: number; protein: number; carbs: number; fat: number };
-export type Targets = { water: number; calories: number; workouts: number };
+export type Targets = { water?: number; calories: number; workouts: number };
 export type Active = { title: string; moves: Move[]; index: number; set: number; sets: Workout['sets']; started: number; elapsed: number; clock: number | null; restUntil: number; restLeft: number };
-export type Reminder = { day: number; hour: number; minute: number; notification?: string };
+export type Reminder = { day: number; hour: number; minute: number; daily?: boolean };
 export type Data = {
   profile: Profile; workout: Workout; measure: Measure; meal: Meal; water: { day: string; ml: number };
   targets: Targets; active: Active | null; reminder: Reminder;
 };
 export type Kind = keyof Data;
 export type Entry<K extends Kind = Kind> = { key: string; kind: K; value: Data[K] | null; pending?: boolean };
-export const targets: Targets = { water: 2000, calories: 2000, workouts: 3 };
+export const targets: Targets = { calories: 2000, workouts: 3 };
+export function waterEstimate(age: number, weight: number) {
+  if (!Number.isFinite(age) || age < 18 || age > 64 || weight < 45 || weight > 100 || !Number.isFinite(weight)) return undefined;
+  return Math.round(weight * 35 / 50) * 50;
+}
 export function dateKey(date = new Date()) {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
 }

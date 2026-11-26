@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Notice } from '../components/ui';
-import { dateKey, number, performance, targets, weekStart, type Profile, type Workout } from './domain';
+import { dateKey, number, performance, targets, waterEstimate, weekStart, type Profile, type Workout } from './domain';
 import { newKey, type Store } from './store';
 import { Button, Caption, Card, Chart, Field, Meter, NumberField, Options, row, stack, Subtitle, Tag, Title } from './ui';
 
@@ -53,7 +53,15 @@ export function Progress({ store, workouts, profile }: { store: Store; workouts:
 }
 
 export const todayWater = (store: Store) => store.list('water').filter(e => e.value.day === dateKey()).reduce((sum, e) => sum + e.value.ml, 0);
-export function Nutrition({ store }: { store: Store }) {
+function hydrationEstimate(store: Store) {
+  const profile = store.get('profile');
+  const last = store.list('measure').map(e => e.value).sort((a,b) => b.day.localeCompare(a.day))[0];
+  if (!profile) return;
+  const weight = last?.weight ?? profile.weight;
+  const ml = waterEstimate(profile.age, weight);
+  if (ml) return { weight, ml };
+}
+export function Nutrition({ store, reminders }: { store: Store; reminders: () => void }) {
   const [ml, setMl] = useState('250');
   const [meal, setMeal] = useState('');
   const [kcal, setKcal] = useState('');
@@ -62,6 +70,14 @@ export function Nutrition({ store }: { store: Store }) {
   const [fat, setFat] = useState('');
   const [error, setError] = useState('');
   const limits = store.get('targets') ?? targets;
+  const estimate = hydrationEstimate(store);
+  const [custom, setCustom] = useState(String(store.get('targets')?.water ?? estimate?.ml ?? ''));
+  const [notice, setNotice] = useState('');
+  const goal = store.get('targets')?.water ?? estimate?.ml;
+  function saveGoal(value: number) {
+    store.save('targets', { ...limits, water: value });
+    setCustom(String(value)); setNotice('Meta de água atualizada.');
+  }
   const day = dateKey(), water = todayWater(store);
   const drinks = store.list('water').filter(e => e.value.day === day);
   const meals = store.list('meal').filter(e => e.value.day === day);
@@ -72,12 +88,22 @@ export function Nutrition({ store }: { store: Store }) {
   return <View style={stack}>
     <Title>Nutrição e hidratação</Title>
     {!!error && <Notice tone="error">{error}</Notice>}
-    <Card style={stack}><Tag>HIDRATAÇÃO · HOJE</Tag><Subtitle>{water} / {limits.water} ml</Subtitle><Meter value={water / limits.water} color="#57C8ED" />
+    <Card style={stack}><Tag>HIDRATAÇÃO · HOJE</Tag><Subtitle>{water}{goal ? ` / ${goal}` : ''} ml</Subtitle>
+      {!!goal && <Meter value={water / goal} color="#57C8ED" />}
+      <Button title="Configurar lembrete de água" secondary onPress={reminders} />
       <NumberField label="Quantidade (ml)" value={ml} set={setMl} />
       <Button title="Registrar água" onPress={() => action(() => store.save('water', { day, ml: number(ml, 1, 2000, true) }, newKey('water')))} />
       {drinks.map(e => <View key={e.key} style={[row, { alignItems: 'center', justifyContent: 'space-between' }]}>
         <Caption>{e.value.ml} ml</Caption><Button title="Remover" secondary style={{ paddingHorizontal: 10, minHeight: 36 }} onPress={() => store.remove('water', e.key)} />
       </View>)}
+    </Card>
+    <Card style={stack}><Subtitle>Sua meta de água</Subtitle>
+      <Caption>{estimate ? `Sugestão aproximada para ${estimate.weight} kg: ${estimate.ml.toLocaleString('pt-BR')} ml por dia. A necessidade varia com calor, suor e condições de saúde.` : 'Você pode cadastrar sua própria meta diária de água.'}</Caption>
+      <Caption>Se você segue uma orientação de saúde sobre líquidos, use a meta indicada para você.</Caption>
+      <NumberField label="Meta diária (ml)" value={custom} set={setCustom} />
+      {notice && <Notice>{notice}</Notice>}
+      {!!estimate && <Button title="Usar estimativa pelo peso" secondary onPress={() => action(() => saveGoal(estimate.ml))} />}
+      <Button title="Salvar meta de água" secondary onPress={() => action(() => saveGoal(number(custom, 250, 6000, true)))} />
     </Card>
     <Card style={stack}><Tag>ALIMENTAÇÃO · HOJE</Tag><Subtitle>{totals[0]} / {limits.calories} kcal</Subtitle>
       <Meter value={totals[0] / limits.calories} />
@@ -100,7 +126,8 @@ export function Nutrition({ store }: { store: Store }) {
 }
 export function Achievements({ store, workouts }: { store: Store; workouts: Workout[] }) {
   const current = store.get('targets') ?? targets;
-  const [water, setWater] = useState(String(current.water));
+  const hydrationGoal = store.get('targets')?.water ?? hydrationEstimate(store)?.ml;
+  const [water, setWater] = useState(String(hydrationGoal ?? ''));
   const [kcal, setKcal] = useState(String(current.calories));
   const [sessions, setSessions] = useState(String(current.workouts));
   const [notice, setNotice] = useState('');
@@ -109,7 +136,7 @@ export function Achievements({ store, workouts }: { store: Store; workouts: Work
     { title: 'Primeiro treino', value: workouts.length, target: 1, unit: 'treino' },
     { title: 'Meta da semana', value: weekly, target: current.workouts, unit: 'dias de treino' },
     { title: 'Dez treinos', value: workouts.length, target: 10, unit: 'treinos' },
-    { title: 'Hidratação de hoje', value: todayWater(store), target: current.water, unit: 'ml' },
+    ...(hydrationGoal ? [{ title: 'Hidratação de hoje', value: todayWater(store), target: hydrationGoal, unit: 'ml' }] : []),
   ];
   return <View style={stack}>
     <Title>Metas e conquistas</Title>
@@ -126,7 +153,7 @@ export function Achievements({ store, workouts }: { store: Store; workouts: Work
       {!!notice && <Notice>{notice}</Notice>}
       <Button title="Salvar metas" onPress={() => {
         try {
-          store.save('targets', { water: number(water, 250, 6000, true), calories: number(kcal, 500, 8000, true), workouts: number(sessions, 1, 7, true) });
+          store.save('targets', { water: water.trim() ? number(water, 250, 6000, true) : undefined, calories: number(kcal, 500, 8000, true), workouts: number(sessions, 1, 7, true) });
           setNotice('Metas salvas.');
         } catch (e) { setNotice((e as Error).message); }
       }} />

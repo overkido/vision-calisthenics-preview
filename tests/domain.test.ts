@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import { deepEqual, equal, throws, ok } from 'node:assert/strict';
 import { builtIn } from '../src/vision/catalog.ts';
-import { completeSet, dateKey, duration, number, plan, restTime, toggleClock, weekStart, type Active, type Profile, type Workout } from '../src/vision/domain.ts';
+import { completeSet, dateKey, duration, number, plan, restTime, toggleClock, waterEstimate, weekStart, type Active, type Profile, type Workout } from '../src/vision/domain.ts';
 
 const profile: Profile = { name: 'Teste', age: 28, weight: 72, height: 175, goal: 'Força', level: 2,
   equipment: ['Barra fixa', 'Paralelas'], days: [1, 3, 5], limits: [], notes: '', pushups: 16, plank: 45 };
@@ -49,4 +49,12 @@ test('valida campos em português e calcula a semana local', () => {
   throws(() => number('3,1', 1, 7, true));
   throws(() => number('1e3', 0, 2000));
   equal(weekStart(new Date(2026, 10, 29)), '2026-11-23');
+});
+
+test('estima água pelo peso recente e deixa perfis fora da faixa com meta manual', () => {
+  equal(waterEstimate(28, 72), 2500);
+  equal(waterEstimate(28, 100), 3500);
+  equal(waterEstimate(17, 72), undefined);
+  equal(waterEstimate(65, 72), undefined);
+  equal(waterEstimate(28, 101), undefined);
 });

@@ -7,16 +7,24 @@ import { equipment, levels, limits, number, weekdays, type Exercise, type Remind
 import { cancelReminder, scheduleReminder } from './reminders';
 import { type Store } from './store';
 import { Button, Caption, Card, Field, NumberField, Options, stack, Subtitle, Title } from './ui';
-export const reminderKey = (owner: string) => 'vision:reminder:' + owner;
-export async function clearDeviceReminder(owner: string) {
-  const key = reminderKey(owner);
+export const waterReminderKey = 'reminder:water';
+const reminderKey = (owner: string, daily = false) => 'vision:reminder:' + owner + (daily ? ':water' : '');
+async function clearReminder(owner: string, daily = false) {
+  const key = reminderKey(owner, daily);
   const id = await AsyncStorage.getItem(key);
   await cancelReminder(id ?? undefined);
   await AsyncStorage.removeItem(key);
 }
 
+export async function clearDeviceReminder(owner: string) {
+  await clearReminder(owner);
+  await clearReminder(owner, true);
+}
 export function Settings({ store, owner, cloud, logout }: { store: Store; owner: string; cloud: boolean; logout: () => Promise<void> }) {
   const saved = store.get('reminder');
+  const savedWater = store.list('reminder').find(e => e.key === waterReminderKey)?.value;
+  const [waterHour, setWaterHour] = useState(String(savedWater?.hour ?? 10));
+  const [waterMinute, setWaterMinute] = useState(String(savedWater?.minute ?? 0));
   const [day, setDay] = useState(saved?.day ?? 1);
   const [hour, setHour] = useState(String(saved?.hour ?? 18));
   const [minute, setMinute] = useState(String(saved?.minute ?? 0));
@@ -30,9 +38,9 @@ export function Settings({ store, owner, cloud, logout }: { store: Store; owner:
     catch (e) { setNotice((e as Error).message); }
     finally { setBusy(false); }
   }
-  async function save() {
-    const reminder: Reminder = { day, hour: number(hour, 0, 23, true), minute: number(minute, 0, 59, true) };
-    const key = reminderKey(owner);
+  async function save(daily = false) {
+    const reminder: Reminder = { day, daily, hour: number(daily ? waterHour : hour, 0, 23, true), minute: number(daily ? waterMinute : minute, 0, 59, true) };
+    const key = reminderKey(owner, daily);
     const old = await AsyncStorage.getItem(key);
     const id = await scheduleReminder(reminder);
     if (id) {
@@ -40,8 +48,8 @@ export function Settings({ store, owner, cloud, logout }: { store: Store; owner:
       catch (e) { await cancelReminder(id); throw e; }
     }
     await cancelReminder(old ?? undefined);
-    store.save('reminder', reminder);
-    setNotice('Lembrete salvo.');
+    store.save('reminder', reminder, daily ? waterReminderKey : 'reminder');
+    setNotice(daily ? 'Lembrete diário de água salvo.' : 'Lembrete salvo.');
   }
   return <View style={stack}>
     <Title>Configurações</Title>
@@ -51,9 +59,18 @@ export function Settings({ store, owner, cloud, logout }: { store: Store; owner:
       <Options label="DIA" options={[0, 1, 2, 3, 4, 5, 6]} selected={[day]} toggle={setDay} display={n => weekdays[n]} />
       <NumberField label="Hora (0–23)" value={hour} set={setHour} />
       <NumberField label="Minuto (0–59)" value={minute} set={setMinute} />
-      <Button title="Salvar lembrete" loading={busy} onPress={() => void run(save)} />
+      <Button title="Salvar lembrete" loading={busy} onPress={() => void run(() => save())} />
       {saved && <Button title="Desativar lembrete" secondary loading={busy} onPress={() => void run(async () => {
-        await clearDeviceReminder(owner); store.remove('reminder'); setNotice('Lembrete desativado.');
+        await clearReminder(owner); store.remove('reminder'); setNotice('Lembrete desativado.');
+      })} />}
+    </Card>
+    <Card style={stack}><Subtitle>Lembrete diário de água</Subtitle>
+      <Caption>{Platform.OS === 'web' ? 'O aviso aparece no horário com o app aberto.' : 'Receba uma notificação diária no aparelho.'}</Caption>
+      <NumberField label="Hora da água (0–23)" value={waterHour} set={setWaterHour} />
+      <NumberField label="Minuto da água (0–59)" value={waterMinute} set={setWaterMinute} />
+      <Button title="Salvar lembrete de água" loading={busy} onPress={() => void run(() => save(true))} />
+      {savedWater && <Button title="Desativar lembrete de água" secondary loading={busy} onPress={() => void run(async () => {
+        await clearReminder(owner, true); store.remove('reminder', waterReminderKey); setNotice('Lembrete de água desativado.');
       })} />}
     </Card>
     <Card style={stack}><Subtitle>Privacidade e dados</Subtitle>

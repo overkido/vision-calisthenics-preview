@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Svg, { Circle, Path } from 'react-native-svg';
+import { MovementArt } from './MovementArt';
 import { Linking, Pressable, View } from 'react-native';
 import { Notice } from '../components/ui';
 import { colors as c } from '../theme';
@@ -10,31 +10,19 @@ import { Button, Caption, Card, Field, Meter, NumberField, Options, row, stack, 
 export const clock = (time: number) => [Math.floor(time / 3600), Math.floor(time % 3600 / 60), time % 60].map(piece => String(piece).padStart(2, '0')).join(':');
 export const units = (exercise: Exercise) => exercise.timed ? 's' : 'reps';
 
-const movementPaths: Record<string, string> = {
-  Empurrar: 'M4 23h33M9 20l8-6 10 4 4 5m-14-9 2 9',
-  Puxar: 'M5 4h30m-21 0v9l6 5 6-5V4m-6 14v9',
-  Pernas: 'M4 25h33m-15-16-6 6 10 3-3 7m-7-10-3 9',
-  Core: 'M4 24h33m-26-3 7-7 10 4 5 6',
-};
-function MovementIcon({ group }: { group: string }) {
-  return <Svg width={40} height={32} viewBox="0 0 40 28">
-    <Circle cx={group === 'Puxar' ? 20 : 23} cy={group === 'Puxar' ? 11 : 6} r={3} stroke={c.green} fill="none" strokeWidth={1.5} />
-    <Path d={movementPaths[group] ?? movementPaths.Core} fill="none" stroke={c.green} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
-  </Svg>;
-}
-
 export function Library({ catalog }: { catalog: Exercise[] }) {
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState('Todos');
   const [level, setLevel] = useState(-1);
+  const [gear, setGear] = useState('Todos');
   const [selected, setSelected] = useState<Exercise>();
   const [error, setError] = useState('');
   const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const visible = catalog.filter(e => (group === 'Todos' || e.group === group) && (level < 0 || e.level === level) && normalize(e.name + ' ' + e.gear).includes(normalize(search.trim())));
+  const visible = catalog.filter(e => (group === 'Todos' || e.group === group) && (level < 0 || e.level === level) && (gear === 'Todos' || !e.gear) && normalize(e.name + ' ' + e.gear).includes(normalize(search.trim())));
   if (selected) return <View style={stack}>
     <Button title="Voltar à biblioteca" secondary onPress={() => { setSelected(undefined); setError(''); }} />
     <Title>{selected.name}</Title><Tag>{selected.group} · {levels[selected.level]}</Tag>
-    <Card><Subtitle>Como executar</Subtitle>
+    <Card><MovementArt exercise={selected} /><Subtitle>Como executar</Subtitle>
       {selected.steps.map((step, i) => <Caption key={i} style={{ marginTop: 12 }}>{i + 1}. {step}</Caption>)}
       <Caption style={{ marginTop: 16 }}>Equipamento: {selected.gear || 'peso corporal'}</Caption>
     </Card>
@@ -46,8 +34,9 @@ export function Library({ catalog }: { catalog: Exercise[] }) {
     <Field label="Buscar exercício" value={search} onChangeText={setSearch} placeholder="Flexão, barra fixa, prancha..." />
     <Options label="GRUPO MUSCULAR" options={['Todos', ...new Set(catalog.map(e => e.group))]} selected={[group]} toggle={setGroup} />
     <Options label="NÍVEL" options={[-1, 0, 1, 2]} selected={[level]} toggle={setLevel} display={n => n < 0 ? 'Todos' : levels[n]} />
+    <Options label="EQUIPAMENTO" options={['Todos', 'Sem equipamento']} selected={[gear]} toggle={setGear} />
     <View style={row}>{visible.map(e => <Pressable key={e.id} accessibilityRole="button" onPress={() => setSelected(e)} style={{ flexGrow: 1, flexBasis: 225 }}>
-      <Card style={{ minHeight: 157, gap: 5 }}><MovementIcon group={e.group} /><Tag>{e.group.toUpperCase()}</Tag><Subtitle>{e.name}</Subtitle><Caption>{levels[e.level]} · {e.gear || 'Peso corporal'}</Caption></Card>
+      <Card style={{ minHeight: 157, gap: 5 }}><MovementArt exercise={e} compact /><Tag>{e.group.toUpperCase()}</Tag><Subtitle>{e.name}</Subtitle><Caption>{levels[e.level]} · {e.gear || 'Peso corporal'}</Caption></Card>
     </Pressable>)}</View>
     {!visible.length && <Caption>Nenhum exercício corresponde à busca.</Caption>}
   </View>;
@@ -57,7 +46,7 @@ export function Plan({ moves, title, profile, start, resume, library }: {
   moves: Move[]; title: string; profile: Profile; start: () => void; resume: boolean; library: () => void;
 }) {
   return <View style={stack}>
-    <Title>Seus treinos</Title>
+    <Title>Treinos em casa</Title>
     <Card style={{ gap: 10 }}>
       <Tag>{profile.goal.toUpperCase()} · {levels[profile.level].toUpperCase()}</Tag>
       <Subtitle>{title}</Subtitle><Caption>{profile.days.map(d => weekdays[d]).join(' · ')}</Caption>
@@ -65,7 +54,7 @@ export function Plan({ moves, title, profile, start, resume, library }: {
       {(moves.length > 0 || resume) && <Button title={resume ? 'Retomar treino' : 'Iniciar treino'} onPress={start} />}
     </Card>
     {moves.map((move, i) => <Card key={move.exercise.id}><Tag>{String(i + 1).padStart(2, '0')} · {move.exercise.group.toUpperCase()}</Tag>
-      <Subtitle>{move.exercise.name}</Subtitle>
+      <Subtitle>{move.exercise.name}</Subtitle><MovementArt exercise={move.exercise} compact />
       <Caption>{move.sets} séries × {move.target} {units(move.exercise)} · {move.rest}s de descanso</Caption>
     </Card>)}
     <Button title="Abrir biblioteca de exercícios" secondary onPress={library} />
@@ -107,7 +96,7 @@ export function ActiveWorkout({ active, store, profile, back }: { active: Active
       <Button title={active.clock === null ? 'Retomar cronômetro' : 'Pausar cronômetro'} secondary onPress={() => store.save('active', toggleClock(active, Date.now()))} />
     </Card>
     {move ? <Card style={stack}>
-      <Subtitle>{move.exercise.name}</Subtitle>
+      <Subtitle>{move.exercise.name}</Subtitle><MovementArt exercise={move.exercise} />
       <Caption>Exercício {active.index + 1} de {active.moves.length} · Série {active.set + 1} de {move.sets}</Caption>
       {rest > 0 && <Tag>DESCANSO · {rest}s</Tag>}
       <View style={row}>

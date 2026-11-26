@@ -12,7 +12,7 @@ import { Notice } from './src/components/ui';
 import { colors as c } from './src/theme';
 import { Account, ProfileForm, type AuthMode } from './src/vision/Account';
 import { dateKey, levels, performance, plan, targets, weekdays, weekStart, type Move, type Profile, type Workout } from './src/vision/domain';
-import { Admin, Settings, clearDeviceReminder } from './src/vision/Settings';
+import { Admin, Settings, clearDeviceReminder, waterReminderKey } from './src/vision/Settings';
 import { useStore, type Store } from './src/vision/store';
 import { Achievements, Nutrition, Progress, todayWater } from './src/vision/Tracking';
 import { ActiveWorkout, Calendar, Library, Plan } from './src/vision/Training';
@@ -152,6 +152,8 @@ function AppContent() {
   const profile = store.get('profile');
   const active = store.get('active');
   const reminder = store.get('reminder');
+  const waterReminder = store.list('reminder').find(entry => entry.key === waterReminderKey)?.value;
+  const [waterDue, setWaterDue] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -201,6 +203,24 @@ function AppContent() {
     return () => { clearInterval(interval); setReminderDue(false); };
   }, [profile, reminder]);
 
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !waterReminder || !profile) return;
+    const { hour, minute } = waterReminder;
+    const show = () => {
+      const now = new Date();
+      if (now.getHours() !== hour || now.getMinutes() !== minute) return;
+      const key = 'vision:water-notice:' + owner;
+      const today = dateKey(now);
+      if (window.sessionStorage.getItem(key) !== today) {
+        window.sessionStorage.setItem(key, today);
+        setWaterDue(true);
+      }
+    };
+    show();
+    const timer = setInterval(show, 10000);
+    return () => clearInterval(timer);
+  }, [!!profile, waterReminder?.hour, waterReminder?.minute, owner]);
+
   async function logout() {
     await clearDeviceReminder(owner);
     if (backend && session) {
@@ -214,7 +234,7 @@ function AppContent() {
   const workouts = store.list('workout').map(e => e.value).sort((a, b) => b.id.localeCompare(a.id));
   const moves = profile ? plan(profile, store.catalog, workouts) : [];
   const dayIndex = profile ? [...profile.days].sort((a, b) => (a + 6) % 7 - (b + 6) % 7).indexOf(new Date().getDay()) : -1;
-  const planTitle = dayIndex < 0 ? 'Corpo inteiro' : 'Corpo inteiro ' + String.fromCharCode(65 + dayIndex);
+  const planTitle = dayIndex < 0 ? 'Corpo inteiro em casa' : 'Corpo inteiro em casa · ' + String.fromCharCode(65 + dayIndex);
   const enter = (next: Section) => go(next);
   function start() {
     if (!active && moves.length) {
@@ -247,7 +267,7 @@ function AppContent() {
       case 'Biblioteca': content = <Library catalog={store.catalog} />; break;
       case 'Agenda': content = <Calendar workouts={workouts} days={profile.days} />; break;
       case 'Evolução': content = <Progress store={store} workouts={workouts} profile={profile} />; break;
-      case 'Nutrição': content = <Nutrition store={store} />; break;
+      case 'Nutrição': content = <Nutrition store={store} reminders={() => enter('Configurações')} />; break;
       case 'Conquistas': content = <Achievements store={store} workouts={workouts} />; break;
       case 'Configurações': content = <Settings store={store} owner={owner} cloud={cloud} logout={logout} />; break;
       case 'Administração': content = admin && <Admin store={store} />; break;
@@ -276,6 +296,10 @@ function AppContent() {
         <View style={{ width: '100%', maxWidth: app ? 1100 : 565, alignSelf: 'center', paddingHorizontal: wide ? 34 : 17, paddingVertical: wide ? 34 : 18, gap: 17 }}>
           {(!wide || !app) && <Wordmark />}
           {reminderDue && <Card style={stack}><Subtitle>Hora do treino</Subtitle><Button title="Dispensar aviso" secondary onPress={() => setReminderDue(false)} /></Card>}
+          {app && waterReminder && waterDue && <Card style={stack}><Subtitle>Hora de beber água</Subtitle>
+            <Button title="Abrir hidratação" onPress={() => { setWaterDue(false); go('Nutrição'); }} />
+            <Button title="Dispensar lembrete de água" secondary onPress={() => setWaterDue(false)} />
+          </Card>}
           {content}
           {app && <Caption style={{ fontSize: 11 }}>{store.status}</Caption>}
         </View>

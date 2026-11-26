@@ -24,11 +24,11 @@ Sirva a pasta `dist` via HTTP para testar. Em produção use HTTPS, incluindo pa
 | Perfil e avaliação | Foto opcional, nome, idade, peso, altura, cintura, objetivo, dias, equipamento, nível, restrições, repetições de flexão e tempo de prancha. |
 | Plano e treino | Sugere uma sequência conforme o perfil e o dia. Limitações selecionadas excluem movimentos relacionados. Uma limitação em texto livre pausa geração até revisão. O treino registra séries com repetições ou segundos, descanso e pausas. A sessão em andamento persiste após recarregar. |
 | Progressão | Aumenta um passo quando as duas últimas sessões comparáveis atingem o mesmo alvo em todas as séries registradas. O histórico mantém o alvo e o resultado de cada série. A substituição ocorre antes da primeira série do movimento e respeita equipamento, nível e restrições. |
-| Biblioteca | Busca, grupos musculares, instruções em português e links de demonstração nos movimentos com vídeo associado. Vídeos externos exigem conexão e podem abrir fora do app. |
+| Biblioteca | Busca, filtro sem equipamento, ilustrações de execução no catálogo embarcado, instruções em português e links de demonstração nos movimentos com vídeo associado. Vídeos externos exigem conexão e podem abrir fora do app. |
 | Agenda e evolução | Calendário mensal, indicação dos dias agendados e concluídos, histórico por sessão, gráfico de peso, cintura e séries com filtros de período. Dias previstos são calculados a partir da disponibilidade atual. |
-| Alimentação e hidratação | Registro diário manual de refeições, macros e consumo de água com remoção de lançamentos e metas editáveis. |
+| Alimentação e hidratação | Registro diário manual de refeições, macros e água. A meta de água é editável. A estimativa usa 35 ml/kg, arredondada a 50 ml, com o peso mais recente para perfis de 18–64 anos e 45–100 kg. Fora dessa faixa, a meta é manual. |
 | Metas e conquistas | Primeiro treino, dez treinos, consistência semanal e hidratação diária calculados com dados registrados. |
-| Lembretes | Um lembrete semanal por perfil. Agendamento local no aparelho configurado e aviso dentro do app web aberto. Configurar em outro aparelho exige ativar o agendamento naquele aparelho. |
+| Lembretes | Um lembrete semanal de treino e um diário de água por perfil. Agendamento local no aparelho configurado e aviso dentro do app web aberto. Configurar em outro aparelho exige ativar o agendamento naquele aparelho. |
 | Privacidade | Sair, revisar o estado da sincronização, excluir dados locais e solicitar exclusão da própria conta. Dados locais e dados de contas são espaços independentes. |
 | Administração | Publicação, edição e remoção de entradas remotas do catálogo. Ao remover uma personalização de um exercício do catálogo embarcado, a versão embarcada reaparece. |
 
