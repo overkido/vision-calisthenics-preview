@@ -12,7 +12,7 @@ import { Wordmark } from './src/components/BrandMark';
 import { Notice } from './src/components/ui';
 import { colors as c } from './src/theme';
 import { Account, ProfileForm, type AuthMode } from './src/vision/Account';
-import { dateKey, levels, performance, plan, targets, weekdays, weekStart, type Move, type Profile, type Workout } from './src/vision/domain';
+import { dateKey, estimatedMinutes, levels, performance, plan, targets, weekdays, weekStart, type Move, type Profile, type Workout } from './src/vision/domain';
 import { Admin, Settings, clearDeviceReminder, waterReminderKey } from './src/vision/Settings';
 import { useStore, type Store } from './src/vision/store';
 import { Achievements, Hydration, Progress, todayWater } from './src/vision/Tracking';
@@ -72,7 +72,7 @@ function Home({ profile, workouts, store, moves, planTitle, start, go, wide }: {
   const elapsed = Math.round(workouts.reduce((sum, w) => sum + w.seconds, 0) / 60);
   const last = store.list('measure').map(e => e.value).sort((a, b) => a.day.localeCompare(b.day)).slice(-14);
   const active = store.get('active');
-  const estimate = Math.ceil(moves.reduce((sum, m) => sum + m.sets * (m.rest + (m.exercise.timed ? m.target : m.target * 3)), 0) / 60);
+  const estimate = estimatedMinutes(active?.moves ?? moves);
   return <View style={{ gap: 18 }}>
     <View style={[row, { justifyContent: 'space-between', alignItems: 'center' }]}>
       <View style={{ flexShrink: 1 }}><Tag>{new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', weekday: 'long' }).toUpperCase()}</Tag>
@@ -264,7 +264,7 @@ function AppContent() {
   const workouts = store.list('workout').map(e => e.value).sort((a, b) => b.id.localeCompare(a.id));
   const moves = profile ? plan(profile, store.catalog, workouts) : [];
   const dayIndex = profile ? [...profile.days].sort((a, b) => (a + 6) % 7 - (b + 6) % 7).indexOf(new Date().getDay()) : -1;
-  const planTitle = dayIndex < 0 ? 'Corpo inteiro em casa' : 'Corpo inteiro em casa · ' + String.fromCharCode(65 + dayIndex);
+  const planTitle = (profile?.goal ?? 'Treino') + ' em casa' + (dayIndex < 0 ? '' : ' · ' + String.fromCharCode(65 + dayIndex));
   const enter = (next: Section) => go(next);
   function start() {
     if (!active && moves.length) {
@@ -293,7 +293,7 @@ function AppContent() {
     switch (section) {
       case 'Início': content = <Home {...{ profile, workouts, store, moves, planTitle, start, wide }} go={enter} />; break;
       case 'Treino ativo': content = active && <ActiveWorkout active={active} store={store} profile={profile} back={() => go('Treinos')} />; break;
-      case 'Treinos': content = <Plan moves={moves} title={planTitle} profile={profile} start={start} resume={!!active} library={() => enter('Biblioteca')} />; break;
+      case 'Treinos': content = <Plan moves={active?.moves ?? moves} title={active?.title ?? planTitle} profile={profile} start={start} resume={!!active} library={() => enter('Biblioteca')} />; break;
       case 'Biblioteca': content = <Library catalog={store.catalog} profile={profile} moves={moves} favorite={profile.favoriteExercises ?? []} toggleFavorite={id => {
         const favorites = profile.favoriteExercises ?? [];
         store.save('profile', { ...profile, favoriteExercises: favorites.includes(id) ? favorites.filter(x => x !== id) : [...favorites,id] });

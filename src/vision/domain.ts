@@ -51,26 +51,62 @@ export function number(text: string, min: number, max: number, integer = false) 
   }
   return result;
 }
+function moveSeconds(move: Move) {
+  return move.sets * (move.rest + (move.exercise.timed ? move.target : move.target * 3));
+}
+export function estimatedMinutes(moves: Move[]) {
+  return Math.ceil(moves.reduce((total, move) => total + moveSeconds(move), 0) / 60);
+}
+const focusGroups: Record<string,string[]> = {
+  Força: ['Empurrar','Puxar','Pernas','Core'],
+  Hipertrofia: ['Pernas','Empurrar','Puxar','Core'],
+  Resistência: ['Cardio','Pernas','Core','Puxar','Empurrar'],
+  Emagrecimento: ['Pernas','Cardio','Empurrar','Puxar','Core'],
+  Habilidades: ['Core','Puxar','Empurrar','Pernas'],
+};
 export function plan(profile: Profile, catalog: Exercise[], workouts: Workout[], day = new Date()): Move[] {
   // Free text restrictions need review before making a prescription.
   if (profile.notes.trim()) return [];
   const days = [...profile.days].sort((a, b) => (a + 6) % 7 - (b + 6) % 7);
   const slot = Math.max(0, days.indexOf(day.getDay()));
-  const pushLevel = profile.pushups < 5 ? 0 : profile.level;
+  const pushLevel = profile.pushups < 5 ? 0 : profile.pushups < 10 ? Math.min(1,profile.level) : profile.level;
+  const coreLevel = profile.plank < 15 ? 0 : profile.plank < 30 ? Math.min(1,profile.level) : profile.level;
   const pistolReady = workouts.filter(workout => !workout.partial)
     .map(workout => workout.sets.filter(set => set.id === 'pistol-box'))
     .filter(sets => sets.length >= 2).slice(0, 2)
     .filter(sets => sets.every(set => set.quality === 'Controlada' && set.amount >= set.target)).length === 2;
   const eligible = catalog.filter(e =>
     (e.level < 3 || (e.id === 'pistol-free' && pistolReady)) &&
-    e.level <= (e.group === 'Empurrar' ? pushLevel : profile.level) &&
+    e.level <= (e.group === 'Empurrar' ? pushLevel : e.group === 'Core' ? coreLevel : profile.level) &&
     (!e.gear || profile.equipment.includes(e.gear)) &&
     !e.avoid.some(limit => profile.limits.includes(limit)));
-  const groups = profile.goal === 'Habilidades' ? ['Core', 'Puxar', 'Empurrar', 'Pernas'] : ['Empurrar', 'Puxar', 'Pernas', 'Core'];
-  return groups.flatMap(group => {
-    const pool = eligible.filter(e => e.group === group).sort((a, b) => b.level - a.level);
-    const exercise = pool[slot % pool.length];
-    if (!exercise) return [];
+  const groups = focusGroups[profile.goal] ?? focusGroups.Força;
+  const minutes = profile.minutes ?? 30;
+  const maxExercises = (minutes <= 30 ? 3 : minutes <= 45 ? 4 : minutes <= 60 ? 5 : 6);
+  // Rotate the focus when a shorter session cannot fit every movement group.
+  const offset = days.length >= 4 ? (slot * 2) % groups.length : maxExercises < groups.length ? slot % groups.length : 0;
+  const order = [...groups.slice(offset), ...groups.slice(0,offset)];
+  const ranked = new Map<string,Exercise[]>();
+  const preference = (e:Exercise) => {
+    const favorite = profile.favoriteExercises?.includes(e.id) ? 3 : 0;
+    const supported = e.id === 'wall' && profile.pushups < 5 || e.id === 'deadbug' && profile.plank < 10;
+    return e.level * 4 + favorite + Number(!!e.gear) + (supported ? 8 : 0);
+  };
+  for (const group of order) {
+    const pool = eligible.filter(e=>e.group===group).sort((a,b)=>preference(b)-preference(a));
+    if (!pool.length) continue;
+    const top = pool.filter(e=>preference(e)===preference(pool[0]));
+    const shift = slot % top.length;
+    ranked.set(group,[...top.slice(shift),...top.slice(0,shift),...pool.slice(top.length)]);
+  }
+  const candidates:Exercise[]=[];
+  for(let variant=0;variant<maxExercises;variant++){
+    for(const pool of ranked.values()) if(pool[variant]) candidates.push(pool[variant]);
+  }
+  const result:Move[]=[];
+  let remaining = minutes * 60;
+  for(const exercise of candidates){
+    const group=exercise.group;
     const recent = workouts.filter(w => !w.partial && w.sets.some(s => s.id === exercise.id)).sort((a,b) => b.day.localeCompare(a.day)).slice(0, 2);
     const last = recent[0]?.sets.filter(s => s.id === exercise.id) ?? [];
     const initial = exercise.timed
@@ -83,12 +119,20 @@ export function plan(profile: Profile, catalog: Exercise[], workouts: Workout[],
     });
     const needsAdjustment = last.some(s => s.quality === 'Sem controle');
     const adjustment = successful ? (exercise.timed ? 5 : 1) : needsAdjustment ? -(exercise.timed ? 5 : 1) : 0;
-    return [{
+    const move:Move = {
       exercise, target: Math.min(exercise.timed ? 60 : 20, Math.max(1, baseline + adjustment)),
       sets: profile.goal === 'Hipertrofia' || profile.level >= 2 ? 3 : 2,
       rest: profile.goal === 'Força' ? 90 : profile.goal === 'Resistência' ? 40 : 60,
-    }];
-  });
+    };
+    if (profile.goal==='Resistência' && !last.length && !exercise.timed) move.target=Math.min(20,move.target+2);
+    const perSet=moveSeconds(move)/move.sets;
+    move.sets=Math.min(move.sets,Math.floor(remaining/perSet));
+    if(move.sets<2) continue;
+    result.push(move);
+    remaining-=moveSeconds(move);
+    if(result.length===maxExercises) break;
+  }
+  return result;
 }
 export function duration(active: Active, now: number) {
   return Math.floor((active.elapsed + (active.clock === null ? 0 : Math.max(0, now - active.clock))) / 1000);

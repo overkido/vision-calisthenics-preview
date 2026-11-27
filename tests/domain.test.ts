@@ -60,3 +60,19 @@ test('estima água pelo peso recente e deixa perfis fora da faixa com meta manua
   equal(waterEstimate(65, 72), undefined);
   equal(waterEstimate(28, 101), undefined);
 });
+test('gera sessões individuais com orçamento, preferências e avaliação',()=>{
+  const short=plan({...profile,minutes:30},builtIn,[],monday);
+  const long=plan({...profile,minutes:60},builtIn,[],monday);
+  ok(short.length < long.length);
+  for(const minutes of [30,45,60,90]){
+    const moves=plan({...profile,minutes},builtIn,[],monday);
+    ok(moves.reduce((n,m)=>n+m.sets*(m.rest+(m.exercise.timed?m.target:m.target*3)),0)<=minutes*60);
+    equal(new Set(moves.map(m=>m.exercise.id)).size,moves.length);
+  }
+  const skill=plan({...profile,goal:'Habilidades',plank:5,minutes:45},builtIn,[],monday);
+  equal(skill[0].exercise.id,'deadbug');
+  const favorite=plan({...profile,goal:'Força',favoriteExercises:['diamond-pushup']},builtIn,[],monday);
+  equal(favorite[0].exercise.id,'diamond-pushup');
+  const endurance=plan({...profile,goal:'Resistência'},builtIn,[],monday);
+  equal(endurance[0].exercise.group,'Cardio');
+});

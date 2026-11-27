@@ -5,7 +5,7 @@ import { MovementArt, WorkoutArt } from './MovementArt';
 import { Linking, Pressable, View } from 'react-native';
 import { Notice } from '../components/ui';
 import { colors as c } from '../theme';
-import { completeSet, dateKey, duration, executionRatings, levels, performance, restTime, toggleClock, weekdays, type Active, type ExecutionQuality, type Exercise, type Move, type Profile, type Workout } from './domain';
+import { completeSet, dateKey, duration, estimatedMinutes, executionRatings, levels, performance, restTime, toggleClock, weekdays, type Active, type ExecutionQuality, type Exercise, type Move, type Profile, type Workout } from './domain';
 import { type Store } from './store';
 import { Button, Caption, Card, Field, Meter, Options, row, stack, Subtitle, Tag, Title } from './ui';
 
@@ -94,7 +94,10 @@ export function Plan({ moves, title, profile, start, resume, library }: {
     <Title>Treinos em casa</Title>
     <Card style={{ gap: 10 }}>
       <Tag>{profile.goal.toUpperCase()} · {levels[profile.level].toUpperCase()}</Tag>
-      <Subtitle>{title}</Subtitle><Caption>{profile.days.map(d => weekdays[d]).join(' · ')}</Caption>
+      <Subtitle>{title}</Subtitle>
+      {!!moves.length && <Caption>{moves.length} exercícios · cerca de {estimatedMinutes(moves)} min</Caption>}
+      {!resume && <Caption>Seu plano considera sua avaliação de {profile.pushups} flexões e {profile.plank} s de prancha, com até {profile.minutes ?? 30} min por sessão.</Caption>}
+      <Caption>{profile.days.map(d => weekdays[d]).join(' · ')}</Caption>
       {!moves.length && !resume && <Caption>Seu perfil atual não permite gerar uma sessão. Revise suas limitações e equipamentos no perfil.</Caption>}
       {(moves.length > 0 || resume) && <Button title={resume ? 'Retomar treino' : 'Iniciar treino'} onPress={start} />}
     </Card>
